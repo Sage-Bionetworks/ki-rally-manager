@@ -1,6 +1,41 @@
 """Bootstrap it."""
 
+import sys
+
 import synapseclient
+import pandas
+
+
+def getRallies(syn, rallyAdminProjectId):
+    """Get list of rally projects."""
+
+    rallyAdminProject = syn.get(rallyAdminProjectId)
+    tableId = rallyAdminProject.annotations.rallyTableId[0]
+    tbl = syn.tableQuery("select * from %s" % (tableId, ))
+    df = tbl.asDataFrame()
+
+    return df
+
+def getSprints(syn, rallyAdminProjectId, rallyNumber=None):
+    """Get list of sprint projects."""
+
+    rallyAdminProject = syn.get(rallyAdminProjectId)
+    tblId = rallyAdminProject.annotations.sprintTableId[0]
+    tbl = syn.tableQuery("select * from %s" % (tblId, ))
+    df = tbl.asDataFrame()
+
+    if rallyNumber:
+        df = df[df.rally == rallyNumber]
+
+    return df
+
+def makeRallyTeam(syn, name):
+    try:
+        return syn.getTeam(name)
+    except ValueError:
+        sys.stderr.write("Couldn't find team %s, creating it.\n" % name)
+        return syn.store(synapseclient.Team(name=rallyTeamName,
+                                            canPublicJoin=False))
 
 syn = synapseclient.login(silent=True)
 
@@ -17,16 +52,16 @@ wikiMasterTemplateId = rallyAdminProject.annotations.wikiMasterTemplateId[0]
 taskTableTemplateId = rallyAdminProject.annotations.taskTableTemplateId[0]
 
 # Get the current list of rallies from the rally table
-rallyTbl = syn.tableQuery("select * from %s" % (rallyTableId, ))
-rallyDf = rallyTbl.asDataFrame()
-rallyTableSchema = syn.get(rallyTableId)
-rallyTableColumns = list(syn.getColumns(rallyTableId))
+rallyDf = getRallies(syn, rallyAdminProjectId)
 
 sprintTbl = syn.tableQuery("select * from %s" % (sprintTableId, ))
 sprintDf = sprintTbl.asDataFrame()
 
-rally = syn.get(rallyDf.id[0])
+# rally = syn.get(rallyDf.id[0])
 rallyACL = syn._getACL(rallyDf.id[0])
+
+rallyTableSchema = syn.get(rallyTableId)
+rallyTableColumns = list(syn.getColumns(rallyTableId))
 
 rallySprintTableSchema = syn.get(sprintTableId)
 rallySprintTableColumns = list(syn.getColumns(sprintTableId))
@@ -63,8 +98,7 @@ if existingRally.shape[0] == 0:
                                    'CHANGE_SETTINGS', 'MODERATE', 'READ',
                                     'UPDATE', 'DELETE', 'CREATE'])
 
-    rallyTeam = syn.store(synapseclient.Team(name=rallyTeamName,
-                                             canPublicJoin=False))
+    rallyTeam = makeRallyTeam(syn, rallyTeamName)
 
     syn.setPermissions(rallyProject, principalId=rallyTeam.id,
                        accessType=['DOWNLOAD', 'READ', 'UPDATE', 'CREATE'])
