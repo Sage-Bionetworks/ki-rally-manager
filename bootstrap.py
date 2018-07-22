@@ -31,15 +31,15 @@ def getSprints(syn, rallyAdminProjectId, rallyNumber=None):
     return df
 
 
-def makeRallyTeam(syn, name):
-    """Create an empty team for a rally."""
+def createTeam(syn, name, *args, **kwargs):
+    """Create an empty team."""
 
     try:
         return syn.getTeam(name)
     except ValueError:
         sys.stderr.write("Can't find team \"%s\", creating it.\n" % name)
-        return syn.store(synapseclient.Team(name=rallyTeamName,
-                                            canPublicJoin=False))
+        return syn.store(synapseclient.Team(name=name,
+                                            *args, **kwargs))
 
 def addToViewScope(viewschema, scopeIds):
     if type(scopeIds) is not list:
@@ -73,31 +73,66 @@ def getOrCreateSchema(syn, parent, name, columns):
 
     return schema
 
+_concreteToEntityType = {'org.sagebionetworks.repo.model.table.TableEntity': 'table',
+                         'org.sagebionetworks.repo.model.Folder': 'folder',
+                         'org.sagebionetworks.repo.model.File': 'file',
+                         '': 'link',
+                         'org.sagebionetworks.repo.model.table.EntityView': 'entityview'
+                         ''}
 
 def findByNameOrCreate(syn, entity):
     """Get an existing entity by name and parent or create a new one.
 
-    This could be done with the /entity/child service, but that only
-    returns the entity ID. To filter by type, another call would be needed
-    to get the entity first to check it's type.
     """
 
-    entityType = entity.properties.entityType.split(".")[-1].lower()
-    parent = entity.properties.parentId
-    name = entity.properties.name
+    try:
+        entity = syn.store(entity, createOrUpdate=False)
+    except synapseclient.exceptions.SynapseHTTPError:
+        entityObj = syn.restPOST("/entity/child",
+                                 body=json.dumps({"parentId": entity.properties.get("parentId", None),
+                                                  "entityName": entity.name}))
+        entityTmp = syn.get(entityObj['id'], downloadFile=False)
+        assert entityTmp.properties.concreteType == entityTmp.properties.concreteType, "Different types."
+        entity = entityTmp
 
-    exists = filter(lambda x: x['name'] == name,
-                    syn.getChildren(parent=parent,
-                                    includeTypes=[entityType]))
+    return entity
 
-    if len(exists) > 0:
-        entity = syn.get(exists[0]['id'])
-    else:
-        entity = syn.store(entity)
 
-    return schema
+def createRallyTeam(syn, teamName, defaultMembers=[]):
+    """Create a rally team.
 
-def createSprint(syn, rally, sprintLetter):
+    This should be idempotent, but isn't, hence the special function here.
+    Should remove this once fixed (https://sagebionetworks.jira.com/browse/SYNPY-723)
+    """
+
+    rallyTeam = createTeam(syn, name=teamName)
+    acl = syn.restGET("/team/%s/acl" % (str(rallyTeam.id), ))
+
+    # Invite default users to the team if they are not already in it
+    for individualId in defaultMembers:
+        membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(rallyTeam.id),
+                                                                                                          individualId=individualId))
+        if not membershipStatus['isMember']:
+            invite = {'teamId': str(rallyTeam.id), 'inviteeId': individualId}
+            invite = syn.restPOST("/membershipInvitation", body=json.dumps(invite))
+
+            # Promote to team manager
+            newresourceaccess = {'principalId': individualId,
+                                 'accessType': ['SEND_MESSAGE', 'READ',
+                                                'UPDATE', 'TEAM_MEMBERSHIP_UPDATE',
+                                                'DELETE']}
+
+            acl['resourceAccess'].append(newresourceaccess)
+
+    # Update ACL so the new users are managers
+    acl = syn.restPUT("/team/acl", body=json.dumps(acl))
+
+    return syn.getTeam(rallyTeam.id)
+
+_defaultOtherPermissions = {"3369047": ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE'] # hbgdkiDataScienceLeadsTeamId
+                           }
+
+def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     rallyTitle = "HBGDki Rally %s" % (rally, )
     rallyTeamName = rallyTitle
     consortium = "Bill and Melinda Gates Foundation"
@@ -107,13 +142,13 @@ def createSprint(syn, rally, sprintLetter):
     # Sprint Configuration
     sprintNumber = "%s%s" % (rally, sprintLetter)
     sprintTitle = "Sprint %s" % (sprintNumber, )
-    sprintName = "HBGDki %s" % (sprintTitle, )
+    sprintName = "ki %s" % (sprintTitle, )
     sprintStart = None
     sprintEnd = None
     sprintDataAvailable = None
     rallyTBC = None
 
-    rallyJoinText = """This invitation to join Synapse is for your participation in the "HBGDki Sprint %(sprintId)s". If you haven't already done so, please register, using your name and affiliation in your Profile. Once you have registered, you will be added to the Rally Team (https://www.synapse.org/#!Team:%(rallyTeamId)s) and be able to access the Project for the sprint (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/).
+    rallyJoinText = """This invitation to join Synapse is for your participation in the "ki Sprint %(sprintId)s". If you haven't already done so, please register, using your name and affiliation in your Profile. Once you have registered, you will be added to the Rally Team (https://www.synapse.org/#!Team:%(rallyTeamId)s) and be able to access the Project for the sprint (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/).
     In order to upload content in Synapse, you will need to complete the Certified User quiz. More information can be found here: http://docs.synapse.org/articles/getting_started.html#becoming-a-certified-user
     To get help, feel free to ask questions in the discussion forum (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/discussion/) and visit our documentation page at http://docs.synapse.org/."""
 
@@ -121,7 +156,6 @@ def createSprint(syn, rally, sprintLetter):
     rallyAdminProjectId = "syn11645282"
     rallyAdminProject = syn.get(rallyAdminProjectId)
 
-    hbgdkiDataScienceLeadsTeamId = "3369047"
     wikiTaskTemplateId = "syn12286728"
     wikiRallyTemplateId = "syn12286642"
     allFilesSchemaId = "syn12180518"
@@ -135,10 +169,10 @@ def createSprint(syn, rally, sprintLetter):
 
     teamPermissionsDict = {rallyAdminTeamId: ['DOWNLOAD', 'CHANGE_PERMISSIONS',
                                               'CHANGE_SETTINGS', 'MODERATE', 'READ',
-                                              'UPDATE', 'DELETE', 'CREATE'],
-                           hbgdkiDataScienceLeadsTeamId: ['DOWNLOAD', 'READ',
-                                                          'UPDATE', 'CREATE',
-                                                          'DELETE']}
+                                              'UPDATE', 'DELETE', 'CREATE']}
+
+    if otherPermissions:
+        teamPermissionsDict.update(otherPermissions)
 
     # This is a Project View (table) of a list of rallies
     # in the HBGDki Working Group Project
@@ -166,34 +200,14 @@ def createSprint(syn, rally, sprintLetter):
                      "Results", # (images, graphics)
                      "Sprint kickoff", # (minutes/decks)
                      "Report out", # (deck, meeting recordings)
-                     "Timeline" # – either a 2 or 4 week sprint]
+                     "Timeline" # either a 2 or 4 week sprint
                      ]
 
+
     # Create a rally team.
-    # This should be idempotent, but isn't, hence the special function here.
-    # Should remove this once fixed (https://sagebionetworks.jira.com/browse/SYNPY-723)
-    rallyTeam = makeRallyTeam(syn, rallyTeamName)
-    acl = syn.restGET("/team/%s/acl" % (str(rallyTeam.id), ))
-
-    # Invite default users to the team if they are not already in it
-    for individualId in defaultRallyTeamMembers:
-        membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(rallyTeam.id),
-                                                                                                          individualId=individualId))
-        if not membershipStatus['isMember']:
-            invite = {'teamId': str(rallyTeam.id), 'inviteeId': individualId}
-            invite = syn.restPOST("/membershipInvitation", body=json.dumps(invite))
-
-            # Promote to team manager
-            newresourceaccess = {'principalId': individualId,
-                                 'accessType': ['SEND_MESSAGE', 'READ',
-                                                'UPDATE', 'TEAM_MEMBERSHIP_UPDATE',
-                                                'DELETE']}
-
-            acl['resourceAccess'].append(newresourceaccess)
-
-    # Update ACL so the new users are managers
-    acl = syn.restPUT("/team/acl", body=json.dumps())
-
+    rallyTeam = createRallyTeam(syn=syn,
+                                teamName=rallyTeamName,
+                                defaultMembers=defaultRallyTeamMembers)
 
     # Add the rally team with it's default permissions to
     # the list of permissions to add
@@ -206,13 +220,20 @@ def createSprint(syn, rally, sprintLetter):
                                                           rallyStart=rallyStart,
                                                           rallyEnd=rallyEnd))
 
-    rallyProject = syn.store(rallyProject, createOrUpdate=False)
+    try:
+        rallyProject = syn.store(rallyProject, createOrUpdate=False)
+    except synapseclient.exceptions.SynapseHTTPError:
+        rallyProjectObj = syn.restPOST("/entity/child",
+                                       body=json.dumps({"entityName": rallyTitle}))
+        rallyProject = syn.get(rallyProjectObj['id'])
 
     # Add the Rally Project to the list of rallies in the working group project view
+    rallyTableSchema = syn.get(rallyTableId)
     addToViewScope(rallyTableSchema, rallyProject.id)
     rallyTableSchema = syn.store(rallyTableSchema)
 
     # Add the files in the rally project to the working group all files view
+    allFilesWorkingGroupSchema = syn.get(allFilesSchemaId)
     addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
     allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
 
@@ -229,7 +250,16 @@ def createSprint(syn, rally, sprintLetter):
                                                       scopes=[],
                                                       add_default_columns=True)
 
-    rallySprintTable = syn.store(rallySprintTable, createOrUpdate=False)
+    try:
+        rallySprintTable = syn.store(rallySprintTable, createOrUpdate=False)
+    except synapseclient.exceptions.SynapseHTTPError:
+        rallySprintTableObj = syn.restPOST("/entity/child",
+                                           body=json.dumps({"entityName": rallySprintTable.name,
+                                                            "parentId": rallyProject.id}))
+        rallySprintTableTmp = syn.get(rallySprintTableObj['id'])
+        assert rallySprintTableTmp.properties.concreteType == rallySprintTable.properties.concreteType, "Different types."
+        rallySprintTable = rallySprintTableTmp
+
 
     # Create a file table that lists all files from all sprints in the rally
     # lives in the rally project
@@ -243,7 +273,12 @@ def createSprint(syn, rally, sprintLetter):
     try:
         allFilesTable = syn.store(allFilesTable, createOrUpdate=False)
     except synapseclient.exceptions.SynapseHTTPError:
-        pass
+        allFilesTableObj = syn.restPOST("/entity/child",
+                                           body=json.dumps({"parentId": rallyProject.id,
+                                                            "entityName": allFilesTable.name}))
+        allFilesTableTmp = syn.get(allFilesTableObj['id'])
+        assert allFilesTableTmp.properties.concreteType == allFilesTable.properties.concreteType, "Different types."
+        allFilesTable = allFilesTableTmp
 
     # Annotate the project with the sprint table
     rallyProject.annotations['sprintTableId'] = rallySprintTable.id
@@ -273,7 +308,14 @@ def createSprint(syn, rally, sprintLetter):
                                                            rallyTBC=rallyTBC,
                                                            consortium=consortium))
 
-    sprintProject = syn.store(sprintProject)
+
+    try:
+        sprintProject = syn.store(sprintProject, createOrUpdate=False)
+    except synapseclient.exceptions.SynapseHTTPError:
+        sprintProjectObj = syn.restPOST("/entity/child",
+                                       body=json.dumps({"entityName": sprintProject.name}))
+        sprintProject = syn.get(sprintProjectObj['id'])
+
 
     # Set permissions for the sprint project
     for teamId, permissions in teamPermissionsDict.iteritems():
@@ -296,11 +338,11 @@ def createSprint(syn, rally, sprintLetter):
     allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
 
     allFilesTableSprint = getOrCreateView(syn, parent=sprintProject.id,
-                                         name="Files",
-                                         viewType="file",
-                                         columns=allFilesTableColumns,
-                                         scopes=[sprintProject.id],
-                                         add_default_columns=False)
+                                          name="Files",
+                                          viewType="file",
+                                          columns=allFilesTableColumns,
+                                          scopes=[sprintProject.id],
+                                          add_default_columns=False)
 
     try:
         sprintWiki = syn.getWiki(owner=sprintProject)
@@ -314,6 +356,14 @@ def createSprint(syn, rally, sprintLetter):
 
     # Add a task table
     templateTaskSchema = syn.get(taskTableTemplateId) # Template schema
+
+    newTaskSchema = synapseclient.Schema(parent=sprintProject,
+                                         name="Tasks",
+                                         columns=rallySprintTableColumns,
+                                         scopes=[],
+                                         add_default_columns=False)
+
+
     newTaskSchema = getOrCreateSchema(syn, parent=sprintProject, name="Tasks",
                                       columns=templateTaskSchema.properties.columnIds)
 
