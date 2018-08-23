@@ -138,7 +138,7 @@ _defaultOtherPermissions = {"3369047": ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 
 
 def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     rallyTitle = "HBGDki Rally %s" % (rally, )
-    rallyTeamName = rallyTitle
+    rallyTeamName = "HBGDki Rally %s" % (rally, )
     consortium = "Bill and Melinda Gates Foundation"
     rallyStart = None
     rallyEnd = None
@@ -230,63 +230,53 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
         rallyProjectObj = syn.restPOST("/entity/child",
                                        body=json.dumps({"entityName": rallyTitle}))
         rallyProject = syn.get(rallyProjectObj['id'])
-
-    # Add the Rally Project to the list of rallies in the working group project view
-    rallyTableSchema = syn.get(rallyTableId)
-    addToViewScope(rallyTableSchema, rallyProject.id)
-    rallyTableSchema = syn.store(rallyTableSchema)
-
-    # Add the files in the rally project to the working group all files view
-    allFilesWorkingGroupSchema = syn.get(allFilesSchemaId)
-    addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
-    allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
-
+    
     # Set permissions to the rally project
     for teamId, permissions in teamPermissionsDict.iteritems():
         syn.setPermissions(rallyProject, principalId=teamId,
                            accessType=permissions)
 
-    # Create a sprint table inside the rally project that lists all sprints for the rally
-    rallySprintTable = synapseclient.EntityViewSchema(parent=rallyProject.id,
-                                                      name="Sprints",
-                                                      type="project",
-                                                      columns=rallySprintTableColumns,
-                                                      scopes=[],
-                                                      add_default_columns=True)
+    # # Create a sprint table inside the rally project that lists all sprints for the rally
+    # rallySprintTable = synapseclient.EntityViewSchema(parent=rallyProject.id,
+    #                                                   name="Sprints",
+    #                                                   type="project",
+    #                                                   columns=rallySprintTableColumns,
+    #                                                   scopes=[],
+    #                                                   add_default_columns=True)
 
-    try:
-        rallySprintTable = syn.store(rallySprintTable, createOrUpdate=False)
-    except synapseclient.exceptions.SynapseHTTPError:
-        rallySprintTableObj = syn.restPOST("/entity/child",
-                                           body=json.dumps({"entityName": rallySprintTable.name,
-                                                            "parentId": rallyProject.id}))
-        rallySprintTableTmp = syn.get(rallySprintTableObj['id'])
-        assert rallySprintTableTmp.properties.concreteType == rallySprintTable.properties.concreteType, "Different types."
-        rallySprintTable = rallySprintTableTmp
+    # try:
+    #     rallySprintTable = syn.store(rallySprintTable, createOrUpdate=False)
+    # except synapseclient.exceptions.SynapseHTTPError:
+    #     rallySprintTableObj = syn.restPOST("/entity/child",
+    #                                        body=json.dumps({"entityName": rallySprintTable.name,
+    #                                                         "parentId": rallyProject.id}))
+    #     rallySprintTableTmp = syn.get(rallySprintTableObj['id'])
+    #     assert rallySprintTableTmp.properties.concreteType == rallySprintTable.properties.concreteType, "Different types."
+    #     rallySprintTable = rallySprintTableTmp
 
 
-    # Create a file table that lists all files from all sprints in the rally
-    # lives in the rally project
-    allFilesTable = synapseclient.EntityViewSchema(parent=rallyProject.id,
-                                                   name="Files",
-                                                   type="file",
-                                                   columns=rallySprintTableColumns,
-                                                   scopes=[],
-                                                   add_default_columns=False)
+    # # Create a file table that lists all files from all sprints in the rally
+    # # lives in the rally project
+    # allFilesTable = synapseclient.EntityViewSchema(parent=rallyProject.id,
+    #                                                name="Files",
+    #                                                type="file",
+    #                                                columns=rallySprintTableColumns,
+    #                                                scopes=[],
+    #                                                add_default_columns=False)
 
-    try:
-        allFilesTable = syn.store(allFilesTable, createOrUpdate=False)
-    except synapseclient.exceptions.SynapseHTTPError:
-        allFilesTableObj = syn.restPOST("/entity/child",
-                                           body=json.dumps({"parentId": rallyProject.id,
-                                                            "entityName": allFilesTable.name}))
-        allFilesTableTmp = syn.get(allFilesTableObj['id'])
-        assert allFilesTableTmp.properties.concreteType == allFilesTable.properties.concreteType, "Different types."
-        allFilesTable = allFilesTableTmp
+    # try:
+    #     allFilesTable = syn.store(allFilesTable, createOrUpdate=False)
+    # except synapseclient.exceptions.SynapseHTTPError:
+    #     allFilesTableObj = syn.restPOST("/entity/child",
+    #                                        body=json.dumps({"parentId": rallyProject.id,
+    #                                                         "entityName": allFilesTable.name}))
+    #     allFilesTableTmp = syn.get(allFilesTableObj['id'])
+    #     assert allFilesTableTmp.properties.concreteType == allFilesTable.properties.concreteType, "Different types."
+    #     allFilesTable = allFilesTableTmp
 
-    # Annotate the project with the sprint table
-    rallyProject.annotations['sprintTableId'] = rallySprintTable.id
-    rallyProject = syn.store(rallyProject)
+    # # Annotate the project with the sprint table
+    # rallyProject.annotations['sprintTableId'] = rallySprintTable.id
+    # rallyProject = syn.store(rallyProject)
 
     # Add the wiki, only if it doesn't already exist
     try:
@@ -295,7 +285,7 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
         rallyWikiMasterTemplate = syn.get(wikiRallyTemplateId)
         wiki = syn.store(synapseclient.Wiki(owner=rallyProject,
                                             markdownFile=rallyWikiMasterTemplate.path))
-        wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
+        # wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
         wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
         wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
         wiki = syn.store(wiki)
@@ -325,28 +315,20 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     for teamId, permissions in teamPermissionsDict.iteritems():
         syn.setPermissions(sprintProject, principalId=teamId, accessType=permissions)
 
-    # Add the sprint to the list of sprints in the rally project
-    addToViewScope(rallySprintTable, sprintProject.id)
-    rallySprintTable = syn.store(rallySprintTable)
+    # # Add the sprint to the list of sprints in the rally project
+    # addToViewScope(rallySprintTable, sprintProject.id)
+    # rallySprintTable = syn.store(rallySprintTable)
 
-    # add the files in the sprint to the list of files in the sprint project
-    addToViewScope(allFilesTable, sprintProject.id)
-    allFilesTable = syn.store(allFilesTable)
+    # # add the files in the sprint to the list of files in the sprint project
+    # addToViewScope(allFilesTable, sprintProject.id)
+    # allFilesTable = syn.store(allFilesTable)
 
-    # Add the sprint to the all sprints table in the ki working group project
-    rallyAdminSprintTable = syn.get(sprintTableId)
-    addToViewScope(rallyAdminSprintTable, sprintProject.id)
-    rallyAdminSprintTable = syn.store(rallyAdminSprintTable)
-
-    addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
-    allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
-
-    allFilesTableSprint = getOrCreateView(syn, parent=sprintProject.id,
-                                          name="Files",
-                                          viewType="file",
-                                          columns=allFilesTableColumns,
-                                          scopes=[sprintProject.id],
-                                          add_default_columns=False)
+    # allFilesTableSprint = getOrCreateView(syn, parent=sprintProject.id,
+    #                                       name="Files",
+    #                                       viewType="file",
+    #                                       columns=allFilesTableColumns,
+    #                                       scopes=[sprintProject.id],
+    #                                       add_default_columns=False)
 
     try:
         sprintWiki = syn.getWiki(owner=sprintProject)
@@ -360,14 +342,7 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
 
     # Add a task table
     templateTaskSchema = syn.get(taskTableTemplateId) # Template schema
-
-    newTaskSchema = synapseclient.Schema(parent=sprintProject,
-                                         name="Tasks",
-                                         columns=rallySprintTableColumns,
-                                         scopes=[],
-                                         add_default_columns=False)
-
-
+    
     newTaskSchema = getOrCreateSchema(syn, parent=sprintProject, name="Tasks",
                                       columns=templateTaskSchema.properties.columnIds)
 
@@ -388,3 +363,21 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     for folderName in sprintFolders:
         folder = syn.store(synapseclient.Folder(name=folderName,
                                                 parent=sprintProject))
+
+    # Add the Rally Project to the list of rallies in the working group project view
+    rallyTableSchema = syn.get(rallyTableId)
+    addToViewScope(rallyTableSchema, rallyProject.id)
+    rallyTableSchema = syn.store(rallyTableSchema)
+
+    # Add the sprint to the all sprints table in the ki working group project
+    rallyAdminSprintTable = syn.get(sprintTableId)
+    addToViewScope(rallyAdminSprintTable, sprintProject.id)
+    rallyAdminSprintTable = syn.store(rallyAdminSprintTable)
+
+    # Add the files in the rally project to the working group all files view
+    allFilesWorkingGroupSchema = syn.get(allFilesSchemaId)
+    addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
+    allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
+
+    addToViewScope(allFilesWorkingGroupSchema, sprintProject.id)
+    allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
