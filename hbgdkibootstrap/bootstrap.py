@@ -10,6 +10,49 @@ logger.setLevel(logging.INFO)
 
 RALLY_ADMIN_PROJECT_ID = "syn11645282"
 
+# rallyJoinText = """This invitation to join Synapse is for your participation in the "ki Sprint %(sprintId)s". If you haven't already done so, please register, using your name and affiliation in your Profile. Once you have registered, you will be added to the Rally Team (https://www.synapse.org/#!Team:%(rallyTeamId)s) and be able to access the Project for the sprint (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/).
+# In order to upload content in Synapse, you will need to complete the Certified User quiz. More information can be found here: http://docs.synapse.org/articles/getting_started.html#becoming-a-certified-user
+# To get help, feel free to ask questions in the discussion forum (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/discussion/) and visit our documentation page at http://docs.synapse.org/."""
+
+def getRally(syn, rallyAdminProjectId, rallyNumber):
+    """Get a rally by number."""
+
+    rallyAdminProject = syn.get(rallyAdminProjectId)
+    tableId = rallyAdminProject.annotations.rallyTableId[0]
+    tbl = syn.tableQuery("select id from %(tableId)s where rally=%(rallyNumber)s" % dict(tableId=tableId, rallyNumber=rallyNumber))
+    df = tbl.asDataFrame()
+
+    ids = df.id.tolist()
+
+    if len(ids) == 0:
+        logger.debug("No rally found.")
+        return None
+    if len(ids) > 1:
+        raise ValueError("Found more than one matching rally project.")
+
+    return syn.get(ids[0], downloadFile=False)
+
+def getSprint(syn, rallyAdminProjectId, rallyNumber, sprintLetter):
+    """Get a sprint by number and letter."""
+
+    rallyAdminProject = syn.get(rallyAdminProjectId)
+    tableId = rallyAdminProject.annotations.sprintTableId[0]
+    tbl = syn.tableQuery("select id from %(tableId)s where sprintNumber='%(rallyNumber)s%(sprintLetter)s'" % dict(tableId=tableId,
+                                                                                                                 rallyNumber=rallyNumber,
+                                                                                                                 sprintLetter=sprintLetter))
+
+    df = tbl.asDataFrame()
+    
+    ids = df.id.tolist()
+
+    if len(ids) == 0:
+        logger.debug("No rally found.")
+        return None
+    if len(ids) > 1:
+        raise ValueError("Found more than one matching sprint project.")
+
+    return syn.get(ids[0], downloadFile=False)
+
 def getRallies(syn, rallyAdminProjectId):
     """Get list of rally projects."""
     logger.info("Getting rallies from %s" % (rallyAdminProjectId,))
@@ -135,7 +178,6 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
 
 _defaultOtherPermissions = {"3369047": ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE'] # hbgdkiDataScienceLeadsTeamId
                            }
-
 def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     rallyTitle = "HBGDki Rally %s" % (rally, )
     rallyTeamName = "HBGDki Rally %s" % (rally, )
@@ -151,10 +193,6 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     sprintEnd = None
     sprintDataAvailable = None
     rallyTBC = None
-
-    rallyJoinText = """This invitation to join Synapse is for your participation in the "ki Sprint %(sprintId)s". If you haven't already done so, please register, using your name and affiliation in your Profile. Once you have registered, you will be added to the Rally Team (https://www.synapse.org/#!Team:%(rallyTeamId)s) and be able to access the Project for the sprint (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/).
-    In order to upload content in Synapse, you will need to complete the Certified User quiz. More information can be found here: http://docs.synapse.org/articles/getting_started.html#becoming-a-certified-user
-    To get help, feel free to ask questions in the discussion forum (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/discussion/) and visit our documentation page at http://docs.synapse.org/."""
 
     # Get locations of templates, team IDs, etc.
     rallyAdminProjectId = "syn11645282"
@@ -217,167 +255,130 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     # the list of permissions to add
     teamPermissionsDict.update({rallyTeam.id: ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']})
 
-    # Create the Rally Project
-    rallyProject = synapseclient.Project(name=rallyTitle,
-                                         annotations=dict(rally=rally,
-                                                          consortium=consortium,
-                                                          rallyStart=rallyStart,
-                                                          rallyEnd=rallyEnd))
+    rallyProject = getRally(syn, RALLY_ADMIN_PROJECT_ID, rallyNumber=rally)
 
-    try:
-        rallyProject = syn.store(rallyProject, createOrUpdate=False)
-    except synapseclient.exceptions.SynapseHTTPError:
-        rallyProjectObj = syn.restPOST("/entity/child",
-                                       body=json.dumps({"entityName": rallyTitle}))
-        rallyProject = syn.get(rallyProjectObj['id'])
+    if not rallyProject:
+        # Create the Rally Project
+        rallyProject = synapseclient.Project(name=rallyTitle,
+                                             annotations=dict(rally=rally,
+                                                              consortium=consortium,
+                                                              rallyStart=rallyStart,
+                                                              rallyEnd=rallyEnd))
+
+        try:
+            rallyProject = syn.store(rallyProject, createOrUpdate=False)
+        except synapseclient.exceptions.SynapseHTTPError:
+            rallyProjectObj = syn.restPOST("/entity/child",
+                                           body=json.dumps({"entityName": rallyTitle}))
+            rallyProject = syn.get(rallyProjectObj['id'])
     
-    # Set permissions to the rally project
-    for teamId, permissions in teamPermissionsDict.iteritems():
-        syn.setPermissions(rallyProject, principalId=teamId,
-                           accessType=permissions)
+        # Set permissions to the rally project
+        for teamId, permissions in teamPermissionsDict.iteritems():
+            syn.setPermissions(rallyProject, principalId=teamId,
+                               accessType=permissions)
 
-    # # Create a sprint table inside the rally project that lists all sprints for the rally
-    # rallySprintTable = synapseclient.EntityViewSchema(parent=rallyProject.id,
-    #                                                   name="Sprints",
-    #                                                   type="project",
-    #                                                   columns=rallySprintTableColumns,
-    #                                                   scopes=[],
-    #                                                   add_default_columns=True)
+        # Add the wiki, only if it doesn't already exist
+        try:
+            wiki = syn.getWiki(owner=rallyProject)
+        except synapseclient.exceptions.SynapseHTTPError:
+            rallyWikiMasterTemplate = syn.get(wikiRallyTemplateId)
+            wiki = syn.store(synapseclient.Wiki(owner=rallyProject,
+                                                markdownFile=rallyWikiMasterTemplate.path))
+            # wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
+            wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
+            wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
+            wiki = syn.store(wiki)
 
-    # try:
-    #     rallySprintTable = syn.store(rallySprintTable, createOrUpdate=False)
-    # except synapseclient.exceptions.SynapseHTTPError:
-    #     rallySprintTableObj = syn.restPOST("/entity/child",
-    #                                        body=json.dumps({"entityName": rallySprintTable.name,
-    #                                                         "parentId": rallyProject.id}))
-    #     rallySprintTableTmp = syn.get(rallySprintTableObj['id'])
-    #     assert rallySprintTableTmp.properties.concreteType == rallySprintTable.properties.concreteType, "Different types."
-    #     rallySprintTable = rallySprintTableTmp
+    sprintProject = getSprint(syn, RALLY_ADMIN_PROJECT_ID, rallyNumber=rally, sprintLetter=sprintLetter)
 
-
-    # # Create a file table that lists all files from all sprints in the rally
-    # # lives in the rally project
-    # allFilesTable = synapseclient.EntityViewSchema(parent=rallyProject.id,
-    #                                                name="Files",
-    #                                                type="file",
-    #                                                columns=rallySprintTableColumns,
-    #                                                scopes=[],
-    #                                                add_default_columns=False)
-
-    # try:
-    #     allFilesTable = syn.store(allFilesTable, createOrUpdate=False)
-    # except synapseclient.exceptions.SynapseHTTPError:
-    #     allFilesTableObj = syn.restPOST("/entity/child",
-    #                                        body=json.dumps({"parentId": rallyProject.id,
-    #                                                         "entityName": allFilesTable.name}))
-    #     allFilesTableTmp = syn.get(allFilesTableObj['id'])
-    #     assert allFilesTableTmp.properties.concreteType == allFilesTable.properties.concreteType, "Different types."
-    #     allFilesTable = allFilesTableTmp
-
-    # # Annotate the project with the sprint table
-    # rallyProject.annotations['sprintTableId'] = rallySprintTable.id
-    # rallyProject = syn.store(rallyProject)
-
-    # Add the wiki, only if it doesn't already exist
-    try:
-        wiki = syn.getWiki(owner=rallyProject)
-    except synapseclient.exceptions.SynapseHTTPError:
-        rallyWikiMasterTemplate = syn.get(wikiRallyTemplateId)
-        wiki = syn.store(synapseclient.Wiki(owner=rallyProject,
-                                            markdownFile=rallyWikiMasterTemplate.path))
-        # wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
-        wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
-        wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
-        wiki = syn.store(wiki)
-
-    # Create the sprint project
-    sprintProject = synapseclient.Project(name=sprintName,
-                                          annotations=dict(sprintTitle=sprintTitle,
-                                                           sprintNumber=sprintNumber,
-                                                           rally=rally,
-                                                           rallyId=rallyProject.id,
-                                                           sprintStart=sprintStart,
-                                                           sprintEnd=sprintEnd,
-                                                           sprintDataAvailable=sprintDataAvailable,
-                                                           rallyTBC=rallyTBC,
-                                                           consortium=consortium))
+    if not sprintProject:
+        # Create the sprint project
+        sprintProject = synapseclient.Project(name=sprintName,
+                                              annotations=dict(sprintTitle=sprintTitle,
+                                                               sprintNumber=sprintNumber,
+                                                               rally=rally,
+                                                               rallyId=rallyProject.id,
+                                                               sprintStart=sprintStart,
+                                                               sprintEnd=sprintEnd,
+                                                               sprintDataAvailable=sprintDataAvailable,
+                                                               rallyTBC=rallyTBC,
+                                                               consortium=consortium))
 
 
-    try:
-        sprintProject = syn.store(sprintProject, createOrUpdate=False)
-    except synapseclient.exceptions.SynapseHTTPError:
-        sprintProjectObj = syn.restPOST("/entity/child",
-                                       body=json.dumps({"entityName": sprintProject.name}))
-        sprintProject = syn.get(sprintProjectObj['id'])
+        try:
+            sprintProject = syn.store(sprintProject, createOrUpdate=False)
+        except synapseclient.exceptions.SynapseHTTPError:
+            sprintProjectObj = syn.restPOST("/entity/child",
+                                            body=json.dumps({"entityName": sprintProject.name}))
+            sprintProject = syn.get(sprintProjectObj['id'])
 
 
-    # Set permissions for the sprint project
-    for teamId, permissions in teamPermissionsDict.iteritems():
-        syn.setPermissions(sprintProject, principalId=teamId, accessType=permissions)
+        # Set permissions for the sprint project
+        for teamId, permissions in teamPermissionsDict.iteritems():
+            syn.setPermissions(sprintProject, principalId=teamId, accessType=permissions)
 
-    # # Add the sprint to the list of sprints in the rally project
-    # addToViewScope(rallySprintTable, sprintProject.id)
-    # rallySprintTable = syn.store(rallySprintTable)
 
-    # # add the files in the sprint to the list of files in the sprint project
-    # addToViewScope(allFilesTable, sprintProject.id)
-    # allFilesTable = syn.store(allFilesTable)
+        try:
+            sprintWiki = syn.getWiki(owner=sprintProject)
+        except synapseclient.exceptions.SynapseHTTPError:
+            sprintWikiMasterTemplate = syn.get(wikiMasterTemplateId)
+            sprintWiki = syn.store(synapseclient.Wiki(owner=sprintProject,
+                                                      markdownFile=sprintWikiMasterTemplate.path))
+            sprintWiki.markdown = sprintWiki.markdown.replace('id=123', 'id=%s' % rallyTeam.id)
+            sprintWiki.markdown = sprintWiki.markdown.replace('teamId=123', 'teamId=%s' % rallyTeam.id)
+            sprintWiki = syn.store(sprintWiki)
 
-    # allFilesTableSprint = getOrCreateView(syn, parent=sprintProject.id,
-    #                                       name="Files",
-    #                                       viewType="file",
-    #                                       columns=allFilesTableColumns,
-    #                                       scopes=[sprintProject.id],
-    #                                       add_default_columns=False)
-
-    try:
-        sprintWiki = syn.getWiki(owner=sprintProject)
-    except synapseclient.exceptions.SynapseHTTPError:
-        sprintWikiMasterTemplate = syn.get(wikiMasterTemplateId)
-        sprintWiki = syn.store(synapseclient.Wiki(owner=sprintProject,
-                                                  markdownFile=sprintWikiMasterTemplate.path))
-        sprintWiki.markdown = sprintWiki.markdown.replace('id=123', 'id=%s' % rallyTeam.id)
-        sprintWiki.markdown = sprintWiki.markdown.replace('teamId=123', 'teamId=%s' % rallyTeam.id)
-        sprintWiki = syn.store(sprintWiki)
-
-    # Add a task table
-    templateTaskSchema = syn.get(taskTableTemplateId) # Template schema
+        # Add a task table
+        templateTaskSchema = syn.get(taskTableTemplateId) # Template schema
     
-    newTaskSchema = getOrCreateSchema(syn, parent=sprintProject, name="Tasks",
-                                      columns=templateTaskSchema.properties.columnIds)
+        newTaskSchema = getOrCreateSchema(syn, parent=sprintProject, name="Tasks",
+                                          columns=templateTaskSchema.properties.columnIds)
 
-    wikiHeaders = syn.getWikiHeaders(sprintProject)
-    wikiHeaders = filter(lambda x: x.get('parentId', None) == sprintWiki.id and x.get('title', None) == 'Tasks',
-                         wikiHeaders)
+        wikiHeaders = syn.getWikiHeaders(sprintProject)
+        wikiHeaders = filter(lambda x: x.get('parentId', None) == sprintWiki.id and x.get('title', None) == 'Tasks',
+                             wikiHeaders)
 
-    if not wikiHeaders:
-        taskWikiTemplate = syn.get(wikiTaskTemplateId)
-        sprintTaskSubwiki = syn.store(synapseclient.Wiki(title="Tasks",
-                                                         owner=sprintProject,
-                                                         parentWikiId=sprintWiki.id,
-                                                         markdownFile=taskWikiTemplate.path))
-        sprintTaskSubwiki.markdown = sprintTaskSubwiki.markdown.replace('syn00000000', newTaskSchema.id)
-        sprintTaskSubwiki = syn.store(sprintTaskSubwiki)
+        if not wikiHeaders:
+            taskWikiTemplate = syn.get(wikiTaskTemplateId)
+            sprintTaskSubwiki = syn.store(synapseclient.Wiki(title="Tasks",
+                                                             owner=sprintProject,
+                                                             parentWikiId=sprintWiki.id,
+                                                             markdownFile=taskWikiTemplate.path))
+            sprintTaskSubwiki.markdown = sprintTaskSubwiki.markdown.replace('syn00000000', newTaskSchema.id)
+            sprintTaskSubwiki = syn.store(sprintTaskSubwiki)
 
-    # Create folders
-    for folderName in sprintFolders:
-        folder = syn.store(synapseclient.Folder(name=folderName,
-                                                parent=sprintProject))
+        # Create folders
+        for folderName in sprintFolders:
+            folder = syn.store(synapseclient.Folder(name=folderName,
+                                                    parent=sprintProject))
 
-    # Add the Rally Project to the list of rallies in the working group project view
-    rallyTableSchema = syn.get(rallyTableId)
-    addToViewScope(rallyTableSchema, rallyProject.id)
-    rallyTableSchema = syn.store(rallyTableSchema)
+        # Create a daily checkin discussion post
+        forum = syn.restGET("/project/%(projectId)s/forum" % dict(projectId=sprintProject.id))
+        
+        posts = [{'forumId': forum.get('id', None),
+                  'title': 'Daily Discussion',
+                  'messageMarkdown': 'Use this post for a daily checkin.'}]
 
-    # Add the sprint to the all sprints table in the ki working group project
-    rallyAdminSprintTable = syn.get(sprintTableId)
-    addToViewScope(rallyAdminSprintTable, sprintProject.id)
-    rallyAdminSprintTable = syn.store(rallyAdminSprintTable)
+        for p in posts:
+            try:
+                post = syn.restPOST("/thread", body=json.dumps(p))
+            except Exception as e:
+                logger.error("Error with post: %s (%s)" % (post, e))
+    
+        # Add the Rally Project to the list of rallies in the working group project view
+        rallyTableSchema = syn.get(rallyTableId)
+        addToViewScope(rallyTableSchema, rallyProject.id)
+        rallyTableSchema = syn.store(rallyTableSchema)
 
-    # Add the files in the rally project to the working group all files view
-    allFilesWorkingGroupSchema = syn.get(allFilesSchemaId)
-    addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
-    allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
+        # Add the sprint to the all sprints table in the ki working group project
+        rallyAdminSprintTable = syn.get(sprintTableId)
+        addToViewScope(rallyAdminSprintTable, sprintProject.id)
+        rallyAdminSprintTable = syn.store(rallyAdminSprintTable)
 
-    addToViewScope(allFilesWorkingGroupSchema, sprintProject.id)
-    allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
+        # Add the files in the rally project to the working group all files view
+        allFilesWorkingGroupSchema = syn.get(allFilesSchemaId)
+        addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
+        allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
+
+        addToViewScope(allFilesWorkingGroupSchema, sprintProject.id)
+        allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
