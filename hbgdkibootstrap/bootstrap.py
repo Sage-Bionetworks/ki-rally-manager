@@ -93,7 +93,7 @@ def addToViewScope(viewschema, scopeIds):
         scopeIds = [scopeIds]
 
     existingScopeIds = set(viewschema.properties.scopeIds)
-    existingScopeIds.update(map(lambda x: x.replace("syn", ""), scopeIds))
+    existingScopeIds.update([x.replace("syn", "") for x in scopeIds])
     viewschema.properties.scopeIds = list(existingScopeIds)
 
 
@@ -273,7 +273,7 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
             rallyProject = syn.get(rallyProjectObj['id'])
     
         # Set permissions to the rally project
-        for teamId, permissions in teamPermissionsDict.iteritems():
+        for teamId, permissions in list(teamPermissionsDict.items()):
             syn.setPermissions(rallyProject, principalId=teamId,
                                accessType=permissions)
 
@@ -288,6 +288,11 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
             wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
             wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
             wiki = syn.store(wiki)
+
+        # Add the Rally Project to the list of rallies in the working group project view
+        rallyTableSchema = syn.get(rallyTableId)
+        addToViewScope(rallyTableSchema, rallyProject.id)
+        rallyTableSchema = syn.store(rallyTableSchema)
 
     sprintProject = getSprint(syn, RALLY_ADMIN_PROJECT_ID, rallyNumber=rally, sprintLetter=sprintLetter)
 
@@ -314,7 +319,7 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
 
 
         # Set permissions for the sprint project
-        for teamId, permissions in teamPermissionsDict.iteritems():
+        for teamId, permissions in list(teamPermissionsDict.items()):
             syn.setPermissions(sprintProject, principalId=teamId, accessType=permissions)
 
 
@@ -335,9 +340,8 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
                                           columns=templateTaskSchema.properties.columnIds)
 
         wikiHeaders = syn.getWikiHeaders(sprintProject)
-        wikiHeaders = filter(lambda x: x.get('parentId', None) == sprintWiki.id and x.get('title', None) == 'Tasks',
-                             wikiHeaders)
-
+        wikiHeaders = [x for x in wikiHeaders if x.get('parentId', None) == sprintWiki.id and x.get('title', None) == 'Tasks']
+        
         if not wikiHeaders:
             taskWikiTemplate = syn.get(wikiTaskTemplateId)
             sprintTaskSubwiki = syn.store(synapseclient.Wiki(title="Tasks",
@@ -365,11 +369,6 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
             except Exception as e:
                 logger.error("Error with post: %s (%s)" % (post, e))
     
-        # Add the Rally Project to the list of rallies in the working group project view
-        rallyTableSchema = syn.get(rallyTableId)
-        addToViewScope(rallyTableSchema, rallyProject.id)
-        rallyTableSchema = syn.store(rallyTableSchema)
-
         # Add the sprint to the all sprints table in the ki working group project
         rallyAdminSprintTable = syn.get(sprintTableId)
         addToViewScope(rallyAdminSprintTable, sprintProject.id)
