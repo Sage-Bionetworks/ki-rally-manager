@@ -179,7 +179,7 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
 _defaultOtherPermissions = {"3369047": ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE'] # hbgdkiDataScienceLeadsTeamId
                            }
 def createSprint(syn, rally, sprintLetter, otherPermissions=None):
-    rallyTitle = "HBGDki Rally %s" % (rally, )
+    rallyTitle = "ki Rally %s" % (rally, )
     rallyTeamName = "HBGDki Rally %s" % (rally, )
     consortium = "Bill and Melinda Gates Foundation"
     rallyStart = None
@@ -201,7 +201,7 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     wikiTaskTemplateId = "syn12286728"
     wikiRallyTemplateId = "syn12286642"
     allFilesSchemaId = "syn12180518"
-    defaultRallyTeamMembers = ["3372480", "3367559"]
+    defaultRallyTeamMembers = ["3372480", "3367559", "3377336"]
 
     rallyAdminTeamId = rallyAdminProject.annotations.rallyAdminTeamId[0]
     rallyTableId = rallyAdminProject.annotations.rallyTableId[0]
