@@ -18,18 +18,18 @@ Requires a configuration file in `json` format that contains information where t
 This creates a rally project, a rally team, and a sprint project. It adds them to the administrative project for listing.
 
 ```
-rally-manager -c CONFIG.json create-sprint RALLYNUMBER SPRINTLETTER
+rallymanager -c CONFIG.json create-sprint RALLYNUMBER SPRINTLETTER
 ```
 
 ## Get a list of rallies
 
 ```
-rally-manager -c CONFIG.json get-rallies
+rallymanager -c CONFIG.json get-rallies
 ```
 
 ## Get a list of sprints
 
 ```
-rally-manager -c CONFIG.json get-rallies [RALLYNUMBER]
+rallymanager -c CONFIG.json get-rallies [RALLYNUMBER]
 ```
 
