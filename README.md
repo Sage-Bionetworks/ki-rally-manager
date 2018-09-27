@@ -16,18 +16,18 @@ Requires a configuration file in `json` format that contains information where t
 ## Create a sprint (and a rally)
 
 ```
-rally-manger -c CONFIG.json create-sprint RALLYNUMBER SPRINTLETTER
+rally-manager -c CONFIG.json create-sprint RALLYNUMBER SPRINTLETTER
 ```
 
 ## Get a list of rallies
 
 ```
-rally-manger -c CONFIG.json get-rallies
+rally-manager -c CONFIG.json get-rallies
 ```
 
 ## Get a list of sprints
 
 ```
-rally-manger -c CONFIG.json get-rallies [RALLYNUMBER]
+rally-manager -c CONFIG.json get-rallies [RALLYNUMBER]
 ```
 
