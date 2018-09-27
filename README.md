@@ -7,7 +7,7 @@ Project management code for HBGDki rallies and sprints.
 # Install
 
 ```
-pip install git+https://github.com/Sage-Bionetworks/hbgdki-bootstrap.git
+pip install git+https://github.com/Sage-Bionetworks/hbgdki-rally-manager.git
 ```
 # Usage
 
