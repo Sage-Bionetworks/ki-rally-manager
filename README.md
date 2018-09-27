@@ -14,18 +14,18 @@ pip install git+https://github.com/Sage-Bionetworks/hbgdki-bootstrap.git
 ## Create a sprint (and a rally)
 
 ```
-bootstrap-rally-sprint RALLYNUMBER SPRINTLETTER
+rally-manger -c CONFIG.json create-sprint RALLYNUMBER SPRINTLETTER
 ```
 
 ## Get a list of rallies
 
 ```
-bootstrap-rally-sprint get-rallies
+rally-manger -c CONFIG.json get-rallies
 ```
 
 ## Get a list of sprints
 
 ```
-bootstrap-rally-sprint get-rallies [RALLYNUMBER]
+rally-manger -c CONFIG.json get-rallies [RALLYNUMBER]
 ```
 
