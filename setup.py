@@ -19,5 +19,5 @@ setup(name='kirallymanager',
           'pandas',
           'synapseclient'
       ],
-      scripts=['bin/rally-manager'],
+      scripts=['bin/rallymanager'],
       zip_safe=False)
