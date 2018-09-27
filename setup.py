@@ -19,5 +19,5 @@ setup(name='hbgdkirallymanager',
           'pandas',
           'synapseclient'
       ],
-      scripts=['bin/rally-manager'],
+      scripts=['bin/rallymanager'],
       zip_safe=False)
