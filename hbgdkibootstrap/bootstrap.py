@@ -10,6 +10,35 @@ logger.setLevel(logging.INFO)
 
 RALLY_ADMIN_PROJECT_ID = "syn11645282"
 
+# There are other required configuration values that are currently annotations
+# on the rally admin project. These are:
+# rallyAdminTeamId - the user ID of the rally administration team - added by default to permissions
+# rallyTableId - Synapse ID of table that holds all rallies
+# wikiMasterTemplateId - Synapse ID of the Wiki master template
+# taskTableTemplateId - Synapse ID of the schema of the task table template
+CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
+              rallyAdminProjectId = "syn11645282",
+              wikiTaskTemplateId = "syn12286728",
+              wikiRallyTemplateId = "syn12286642",
+              allFilesSchemaId = "syn12180518",
+              # defaultRallyTeamMembers = ["3372480", "3367559", "3377336"],
+              defaultRallyTeamMembers = [],
+              rallyAdminTeamPermissions = ['DOWNLOAD', 'CHANGE_PERMISSIONS',
+                                           'CHANGE_SETTINGS', 'MODERATE', 'READ',
+                                           'UPDATE', 'DELETE', 'CREATE'],
+              # Folder structure to create in the sprint project
+              sprintFolders = ["Data",
+                               "Research Questions",
+                               "Results", # (images, graphics)
+                               "Sprint kickoff", # (minutes/decks)
+                               "Report out", # (deck, meeting recordings)
+                               "Timeline" # either a 2 or 4 week sprint
+              ],
+
+              posts = [{'title': 'Daily Discussion',
+                        'messageMarkdown': 'Use this post for a daily checkin.'}
+              ])
+
 # rallyJoinText = """This invitation to join Synapse is for your participation in the "ki Sprint %(sprintId)s". If you haven't already done so, please register, using your name and affiliation in your Profile. Once you have registered, you will be added to the Rally Team (https://www.synapse.org/#!Team:%(rallyTeamId)s) and be able to access the Project for the sprint (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/).
 # In order to upload content in Synapse, you will need to complete the Certified User quiz. More information can be found here: http://docs.synapse.org/articles/getting_started.html#becoming-a-certified-user
 # To get help, feel free to ask questions in the discussion forum (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/discussion/) and visit our documentation page at http://docs.synapse.org/."""
@@ -176,42 +205,118 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
 
     return syn.getTeam(rallyTeam.id)
 
-_defaultOtherPermissions = {"3369047": ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE'] # hbgdkiDataScienceLeadsTeamId
-                           }
-def createSprint(syn, rally, sprintLetter, otherPermissions=None):
-    rallyTitle = "ki Rally %s" % (rally, )
-    rallyTeamName = "HBGDki Rally %s" % (rally, )
-    consortium = "Bill and Melinda Gates Foundation"
-    rallyStart = None
-    rallyEnd = None
+def createRally(syn, rallyNumber, config=CONFIG, otherPermissions=None):
 
-    # Sprint Configuration
-    sprintNumber = "%s%s" % (rally, sprintLetter)
-    sprintTitle = "Sprint %s" % (sprintNumber, )
-    sprintName = "ki %s" % (sprintTitle, )
-    sprintStart = None
-    sprintEnd = None
-    sprintDataAvailable = None
-    rallyTBC = None
+    rallyProject = getRally(syn, config['rallyAdminProjectId'], rallyNumber=rallyNumber)
+
+    if rallyProject:
+        return rallyProject
+    
+    consortium = config.get('consortium', None)
+    rallyStart = config.get('rallyStart', None)
+    rallyEnd = config.get('rallyEnd', None)
+
+    rallyTitle = "ki Rally %s" % (rallyNumber, )
+    rallyTeamName = "HBGDki Rally %s" % (rallyNumber, )
 
     # Get locations of templates, team IDs, etc.
-    rallyAdminProjectId = "syn11645282"
-    rallyAdminProject = syn.get(rallyAdminProjectId)
+    rallyAdminProject = syn.get(config['rallyAdminProjectId'])
 
-    wikiTaskTemplateId = "syn12286728"
-    wikiRallyTemplateId = "syn12286642"
-    allFilesSchemaId = "syn12180518"
-    defaultRallyTeamMembers = ["3372480", "3367559", "3377336"]
+    rallyAdminTeamId = rallyAdminProject.annotations.rallyAdminTeamId[0]
+    rallyTableId = rallyAdminProject.annotations.rallyTableId[0]
+    wikiMasterTemplateId = rallyAdminProject.annotations.wikiMasterTemplateId[0]
+    taskTableTemplateId = rallyAdminProject.annotations.taskTableTemplateId[0]
 
+    teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
+
+    if otherPermissions:
+        teamPermissionsDict.update(otherPermissions)
+
+    # This is a Project View (table) of a list of rallies
+    # in the HBGDki Working Group Project
+    rallyTableSchema = syn.get(rallyTableId)
+    
+    # all files table in the hbgdki rally working group project
+    allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
+
+    # The columns for a file view that lists all files in a project.
+    # This is used for a file view in the HBGDki working group, in the rally
+    # project, and in the sprint project
+    allFilesTableColumns = list(syn.getColumns(config['allFilesSchemaId']))
+
+    # Create a rally team.
+    rallyTeam = createRallyTeam(syn=syn,
+                                teamName=rallyTeamName,
+                                defaultMembers=config['defaultRallyTeamMembers'])
+
+    # Add the rally team with it's default permissions to
+    # the list of permissions to add
+    teamPermissionsDict.update({rallyTeam.id: ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']})
+
+    # Create the Rally Project
+    rallyProject = synapseclient.Project(name=rallyTitle,
+                                         annotations=dict(rally=rallyNumber,
+                                                          consortium=consortium,
+                                                          rallyStart=rallyStart,
+                                                          rallyEnd=rallyEnd,
+                                                          rallyTeam=rallyTeam.id
+                                         ))
+
+    try:
+        rallyProject = syn.store(rallyProject, createOrUpdate=False)
+    except synapseclient.exceptions.SynapseHTTPError:
+        rallyProjectObj = syn.restPOST("/entity/child",
+                                       body=json.dumps({"entityName": rallyTitle}))
+        rallyProject = syn.get(rallyProjectObj['id'])
+        
+    # Set permissions to the rally project
+    for teamId, permissions in list(teamPermissionsDict.items()):
+        syn.setPermissions(rallyProject, principalId=teamId,
+                           accessType=permissions)
+
+    # Add the wiki, only if it doesn't already exist
+    try:
+        wiki = syn.getWiki(owner=rallyProject)
+    except synapseclient.exceptions.SynapseHTTPError:
+        rallyWikiMasterTemplate = syn.get(config['wikiRallyTemplateId'])
+        wiki = syn.store(synapseclient.Wiki(owner=rallyProject,
+                                            markdownFile=rallyWikiMasterTemplate.path))
+        # wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
+        wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
+        wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
+        wiki = syn.store(wiki)
+
+    # Add the Rally Project to the list of rallies in the working group project view
+    rallyTableSchema = syn.get(rallyTableId)
+    addToViewScope(rallyTableSchema, rallyProject.id)
+    rallyTableSchema = syn.store(rallyTableSchema)
+
+    # Force refresh of the table
+    touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyTableSchema.id))
+
+    return rallyProject
+
+def createSprint(syn, rallyNumber, sprintLetter, config=CONFIG, otherPermissions=None):
+
+    # Sprint Configuration
+    sprintNumber = "%s%s" % (rallyNumber, sprintLetter)
+    sprintTitle = "Sprint %s" % (sprintNumber, )
+    sprintName = "ki %s" % (sprintTitle, )
+
+    consortium = config.get('consortium', None)
+    sprintStart = config.get('sprintStart', None)
+    sprintEnd = config.get('sprintEnd', None)
+
+    # Get locations of templates, team IDs, etc.
+    rallyAdminProject = syn.get(config['rallyAdminProjectId'])
+    
     rallyAdminTeamId = rallyAdminProject.annotations.rallyAdminTeamId[0]
     rallyTableId = rallyAdminProject.annotations.rallyTableId[0]
     sprintTableId = rallyAdminProject.annotations.sprintTableId[0]
     wikiMasterTemplateId = rallyAdminProject.annotations.wikiMasterTemplateId[0]
     taskTableTemplateId = rallyAdminProject.annotations.taskTableTemplateId[0]
 
-    teamPermissionsDict = {rallyAdminTeamId: ['DOWNLOAD', 'CHANGE_PERMISSIONS',
-                                              'CHANGE_SETTINGS', 'MODERATE', 'READ',
-                                              'UPDATE', 'DELETE', 'CREATE']}
+    teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
 
     if otherPermissions:
         teamPermissionsDict.update(otherPermissions)
@@ -229,85 +334,36 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
     rallySprintTableColumns = list(syn.getColumns(sprintTableId))
 
     # all files table in the hbgdki rally working group project
-    allFilesWorkingGroupSchema = syn.get(allFilesSchemaId)
+    allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
 
     # The columns for a file view that lists all files in a project.
     # This is used for a file view in the HBGDki working group, in the rally
     # project, and in the sprint project
-    allFilesTableColumns = list(syn.getColumns(allFilesSchemaId))
-
-    # Folder structure to create in the sprint project
-    sprintFolders = ["Data",
-                     "Research Questions",
-                     "Results", # (images, graphics)
-                     "Sprint kickoff", # (minutes/decks)
-                     "Report out", # (deck, meeting recordings)
-                     "Timeline" # either a 2 or 4 week sprint
-                     ]
+    allFilesTableColumns = list(syn.getColumns(config['allFilesSchemaId']))
 
 
-    # Create a rally team.
-    rallyTeam = createRallyTeam(syn=syn,
-                                teamName=rallyTeamName,
-                                defaultMembers=defaultRallyTeamMembers)
+    rallyProject = createRally(syn, rallyNumber=rallyNumber, config=config, otherPermissions=otherPermissions)
+
+    # Get the rally team.
+    rallyTeam = syn.getTeam(rallyProject.annotations.get('rallyTeam', None)[0])
 
     # Add the rally team with it's default permissions to
     # the list of permissions to add
     teamPermissionsDict.update({rallyTeam.id: ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']})
 
-    rallyProject = getRally(syn, RALLY_ADMIN_PROJECT_ID, rallyNumber=rally)
-
-    if not rallyProject:
-        # Create the Rally Project
-        rallyProject = synapseclient.Project(name=rallyTitle,
-                                             annotations=dict(rally=rally,
-                                                              consortium=consortium,
-                                                              rallyStart=rallyStart,
-                                                              rallyEnd=rallyEnd))
-
-        try:
-            rallyProject = syn.store(rallyProject, createOrUpdate=False)
-        except synapseclient.exceptions.SynapseHTTPError:
-            rallyProjectObj = syn.restPOST("/entity/child",
-                                           body=json.dumps({"entityName": rallyTitle}))
-            rallyProject = syn.get(rallyProjectObj['id'])
-    
-        # Set permissions to the rally project
-        for teamId, permissions in list(teamPermissionsDict.items()):
-            syn.setPermissions(rallyProject, principalId=teamId,
-                               accessType=permissions)
-
-        # Add the wiki, only if it doesn't already exist
-        try:
-            wiki = syn.getWiki(owner=rallyProject)
-        except synapseclient.exceptions.SynapseHTTPError:
-            rallyWikiMasterTemplate = syn.get(wikiRallyTemplateId)
-            wiki = syn.store(synapseclient.Wiki(owner=rallyProject,
-                                                markdownFile=rallyWikiMasterTemplate.path))
-            # wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
-            wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
-            wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
-            wiki = syn.store(wiki)
-
-        # Add the Rally Project to the list of rallies in the working group project view
-        rallyTableSchema = syn.get(rallyTableId)
-        addToViewScope(rallyTableSchema, rallyProject.id)
-        rallyTableSchema = syn.store(rallyTableSchema)
-
-    sprintProject = getSprint(syn, RALLY_ADMIN_PROJECT_ID, rallyNumber=rally, sprintLetter=sprintLetter)
+    sprintProject = getSprint(syn, config['rallyAdminProjectId'], rallyNumber=rallyNumber, sprintLetter=sprintLetter)
 
     if not sprintProject:
         # Create the sprint project
         sprintProject = synapseclient.Project(name=sprintName,
                                               annotations=dict(sprintTitle=sprintTitle,
                                                                sprintNumber=sprintNumber,
-                                                               rally=rally,
+                                                               rally=rallyNumber,
                                                                rallyId=rallyProject.id,
                                                                sprintStart=sprintStart,
                                                                sprintEnd=sprintEnd,
-                                                               sprintDataAvailable=sprintDataAvailable,
-                                                               rallyTBC=rallyTBC,
-                                                               consortium=consortium))
+                                                               consortium=consortium,
+                                                               rallyTeam=rallyTeam.id))
 
 
         try:
@@ -316,8 +372,7 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
             sprintProjectObj = syn.restPOST("/entity/child",
                                             body=json.dumps({"entityName": sprintProject.name}))
             sprintProject = syn.get(sprintProjectObj['id'])
-
-
+        
         # Set permissions for the sprint project
         for teamId, permissions in list(teamPermissionsDict.items()):
             syn.setPermissions(sprintProject, principalId=teamId, accessType=permissions)
@@ -343,7 +398,7 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
         wikiHeaders = [x for x in wikiHeaders if x.get('parentId', None) == sprintWiki.id and x.get('title', None) == 'Tasks']
         
         if not wikiHeaders:
-            taskWikiTemplate = syn.get(wikiTaskTemplateId)
+            taskWikiTemplate = syn.get(config['wikiTaskTemplateId'])
             sprintTaskSubwiki = syn.store(synapseclient.Wiki(title="Tasks",
                                                              owner=sprintProject,
                                                              parentWikiId=sprintWiki.id,
@@ -352,18 +407,15 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
             sprintTaskSubwiki = syn.store(sprintTaskSubwiki)
 
         # Create folders
-        for folderName in sprintFolders:
+        for folderName in config['sprintFolders']:
             folder = syn.store(synapseclient.Folder(name=folderName,
                                                     parent=sprintProject))
 
         # Create a daily checkin discussion post
         forum = syn.restGET("/project/%(projectId)s/forum" % dict(projectId=sprintProject.id))
-        
-        posts = [{'forumId': forum.get('id', None),
-                  'title': 'Daily Discussion',
-                  'messageMarkdown': 'Use this post for a daily checkin.'}]
 
-        for p in posts:
+        for p in config['posts']:
+            p['forumId'] = forum.get('id', None)
             try:
                 post = syn.restPOST("/thread", body=json.dumps(p))
             except Exception as e:
@@ -375,9 +427,13 @@ def createSprint(syn, rally, sprintLetter, otherPermissions=None):
         rallyAdminSprintTable = syn.store(rallyAdminSprintTable)
 
         # Add the files in the rally project to the working group all files view
-        allFilesWorkingGroupSchema = syn.get(allFilesSchemaId)
+        allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
         addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
         allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
 
         addToViewScope(allFilesWorkingGroupSchema, sprintProject.id)
         allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
+
+        # make sure all tables are triggered to be refreshed
+        touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyAdminSprintTable.id))
+        touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=allFilesWorkingGroupSchema.id))
