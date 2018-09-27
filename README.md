@@ -15,6 +15,8 @@ Requires a configuration file in `json` format that contains information where t
 
 ## Create a sprint (and a rally)
 
+This creates a rally project, a rally team, and a sprint project. It adds them to the administrative project for listing.
+
 ```
 rally-manager -c CONFIG.json create-sprint RALLYNUMBER SPRINTLETTER
 ```
