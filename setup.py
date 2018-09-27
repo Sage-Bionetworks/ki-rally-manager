@@ -1,10 +1,10 @@
 from setuptools import setup
 
-setup(name='hbgdkirallymanager',
+setup(name='kirallymanager',
       version='0.1',
-      description='Management client for HBGDki rallies and sprints',
-      long_description='Management client for Healthy Birth Growth and Development Knowledge Initiative (HBGDki) rallies and sprints',
-      url='http://github.com/Sage-Bionetworks/hbgdkibootstrap',
+      description='Management client for Gates Foundation ki rallies and sprints',
+      long_description='Management client for Gates Foundation ki rallies and sprints',
+      url='http://github.com/Sage-Bionetworks/ki-rally-manager',
       author='Kenneth Daily',
       author_email='kenneth.daily@sagebionetworks.org',
       classifiers=[
@@ -14,10 +14,10 @@ setup(name='hbgdkirallymanager',
         'Topic :: Utilities'
       ],
       license='MIT',
-      packages=['hbgdkirallymanager'],
+      packages=['kirallymanager'],
       install_requires=[
           'pandas',
           'synapseclient'
       ],
-      scripts=['bin/rallymanager'],
+      scripts=['bin/rally-manager'],
       zip_safe=False)
