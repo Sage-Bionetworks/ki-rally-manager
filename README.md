@@ -1,13 +1,13 @@
-[![Docker Automated build](https://img.shields.io/docker/automated/jrottenberg/ffmpeg.svg?style=flat-square)](https://hub.docker.com/r/dailyk/hbgdki-bootstrap/)
+[![Docker Automated build](https://img.shields.io/docker/automated/jrottenberg/ffmpeg.svg?style=flat-square)](https://hub.docker.com/r/SageBionetworks/ki-rally-manager/)
 
-# HBGDki Rally Manager
+# ki Rally Manager
 
-Project management code for HBGDki rallies and sprints.
+Project management code for ki rallies and sprints.
 
 # Install
 
 ```
-pip install git+https://github.com/Sage-Bionetworks/hbgdki-rally-manager.git
+pip install git+https://github.com/Sage-Bionetworks/ki-rally-manager.git
 ```
 # Usage
 
