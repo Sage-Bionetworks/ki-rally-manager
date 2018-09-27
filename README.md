@@ -1,6 +1,6 @@
 [![Docker Automated build](https://img.shields.io/docker/automated/jrottenberg/ffmpeg.svg?style=flat-square)](https://hub.docker.com/r/dailyk/hbgdki-bootstrap/)
 
-# hbgdki-bootstrap
+# HBGDki Rally Manger
 
 Project management code for HBGDki rallies and sprints.
 
