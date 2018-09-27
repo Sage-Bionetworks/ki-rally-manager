@@ -2,35 +2,87 @@
 
 """Bootstrap it."""
 
+import sys
+import json
+import logging
+
 from hbgdkibootstrap import bootstrap
 import synapseclient
-import sys
-import logging
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# There are other required configuration values that are currently annotations
+# on the rally admin project. These are:
+# rallyAdminTeamId - the user ID of the rally administration team - added by default to permissions
+# rallyTableId - Synapse ID of table that holds all rallies
+# wikiMasterTemplateId - Synapse ID of the Wiki master template
+# taskTableTemplateId - Synapse ID of the schema of the task table template
+CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
+              rallyAdminProjectId = "syn11645282",
+              wikiTaskTemplateId = "syn12286728",
+              wikiRallyTemplateId = "syn12286642",
+              allFilesSchemaId = "syn12180518",
+              # defaultRallyTeamMembers = ["3372480", "3367559", "3377336"],
+              defaultRallyTeamMembers = [],
+              rallyAdminTeamPermissions = ['DOWNLOAD', 'CHANGE_PERMISSIONS',
+                                           'CHANGE_SETTINGS', 'MODERATE', 'READ',
+                                           'UPDATE', 'DELETE', 'CREATE'],
+              # Folder structure to create in the sprint project
+              sprintFolders = ["Data",
+                               "Research Questions",
+                               "Results", # (images, graphics)
+                               "Sprint kickoff", # (minutes/decks)
+                               "Report out", # (deck, meeting recordings)
+                               "Timeline" # either a 2 or 4 week sprint
+              ],
+
+              posts = [{'title': 'Daily Discussion',
+                        'messageMarkdown': 'Use this post for a daily checkin.'}
+              ])
+
+
+def synapseLoginHelper(args):
+    if args.config:
+        syn = synapseclient.Synapse(configPath=args.synapseConfig)
+    else:
+        syn = synapseclient.Synapse()
+
+    syn.login(silent=True)
+
+    return syn
+
 def createSprint(args):
-    bootstrap.createSprint(syn=synapseclient.login(silent=True),
-                           rally=args.rallyNumber, sprintLetter=args.sprintLetter)
+    syn = synapseLoginHelper(args)
+    config = json.load(file(args.config))
+    bootstrap.createSprint(syn=syn,
+                           rallyNumber=args.rallyNumber, sprintLetter=args.sprintLetter)
 
 def getRallies(args):
     logger.info("Getting rallies.")
-    df = bootstrap.getRallies(syn=synapseclient.login(silent=True),
+    syn = synapseLoginHelper(args)
+    df = bootstrap.getRallies(syn=syn,
                               rallyAdminProjectId=bootstrap.RALLY_ADMIN_PROJECT_ID)
     df.to_csv(sys.stdout)
 
 def getSprints(args):
+    syn = synapseLoginHelper(args)
+    config = json.load(file(args.config))
     df = bootstrap.getSprints(syn=synapseclient.login(silent=True),
-                              rallyAdminProjectId=bootstrap.RALLY_ADMIN_PROJECT_ID,
+                              rallyAdminProjectId=config.get("rallyAdminProjectId", None),
                               rallyNumber=args.rallyNumber)
     
     df.to_csv(sys.stdout)
 
 def main():
     import argparse
-
+    import synapseclient
     parser = argparse.ArgumentParser()
+
+    parser.add_argument('--config', type=str, default=None,
+                        help="Path to KI rallies configuration file")
+    parser.add_argument('--synapseConfig', type=str, default=synapseclient.client.CONFIG_FILE,
+                        help="Path to Synapse configuration file")
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
