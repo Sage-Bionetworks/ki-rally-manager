@@ -1,9 +1,9 @@
 from setuptools import setup
 
-setup(name='hbgdkibootstrap',
+setup(name='hbgdkirallymanager',
       version='0.1',
-      description='Bootstrap scripts for HBGDki rallies and sprints',
-      long_description='Bootstrap scripts for Healthy Birth Growth and Development Knowledge Initiative (HBGDki) rallies and sprints',
+      description='Management client for HBGDki rallies and sprints',
+      long_description='Management client for Healthy Birth Growth and Development Knowledge Initiative (HBGDki) rallies and sprints',
       url='http://github.com/Sage-Bionetworks/hbgdkibootstrap',
       author='Kenneth Daily',
       author_email='kenneth.daily@sagebionetworks.org',
@@ -14,10 +14,10 @@ setup(name='hbgdkibootstrap',
         'Topic :: Utilities'
       ],
       license='MIT',
-      packages=['hbgdkibootstrap'],
+      packages=['hbgdkirallymanager'],
       install_requires=[
           'pandas',
           'synapseclient'
       ],
-      scripts=['bin/bootstrap-rally-sprint'],
+      scripts=['bin/rallymanager'],
       zip_safe=False)
