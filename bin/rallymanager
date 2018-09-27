@@ -6,7 +6,7 @@ import sys
 import json
 import logging
 
-from hbgdkirallymanager import manager
+from kirallymanager import manager
 import synapseclient
 
 logger = logging.getLogger(__name__)
