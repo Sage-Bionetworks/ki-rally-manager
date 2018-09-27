@@ -11,6 +11,8 @@ pip install git+https://github.com/Sage-Bionetworks/hbgdki-bootstrap.git
 ```
 # Usage
 
+Requires a configuration file in `json` format that contains information where things will be set up. An example is at [`ki-rallies-config.json`](ki-rallies-config.json).
+
 ## Create a sprint (and a rally)
 
 ```
