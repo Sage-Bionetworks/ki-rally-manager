@@ -41,33 +41,19 @@ CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
                         'messageMarkdown': 'Use this post for a daily checkin.'}
               ])
 
-
-def synapseLoginHelper(args):
-    if args.synapseConfig:
-        syn = synapseclient.Synapse(configPath=args.synapseConfig)
-    else:
-        syn = synapseclient.Synapse()
-
-    syn.login(silent=True)
-
-    return syn
-
-def createSprint(args):
-    syn = synapseLoginHelper(args)
+def createSprint(syn, args):
     config = json.load(file(args.config))
     manager.createSprint(syn=syn,
                            rallyNumber=args.rallyNumber, sprintLetter=args.sprintLetter)
 
-def getRallies(args):
+def getRallies(syn, args):
     logger.info("Getting rallies.")
-    syn = synapseLoginHelper(args)
     config = json.load(file(args.config))
     df = manager.getRallies(syn=syn,
                               rallyAdminProjectId=config.get("rallyAdminProjectId", None))
     df.to_csv(sys.stdout)
 
-def getSprints(args):
-    syn = synapseLoginHelper(args)
+def getSprints(syn, args):
     config = json.load(file(args.config))
     df = manager.getSprints(syn=synapseclient.login(silent=True),
                               rallyAdminProjectId=config.get("rallyAdminProjectId", None),
@@ -101,6 +87,10 @@ def main():
     parser_get_sprints.set_defaults(func=getSprints)
 
     args = parser.parse_args()
+
+    syn = synapseclient.Synapse(configPath=args.synapseConfig)
+    syn.login(silent=True)
+
     args.func(args)
 
 if __name__ == "__main__":
