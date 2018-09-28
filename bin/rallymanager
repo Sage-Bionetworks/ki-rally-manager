@@ -43,7 +43,7 @@ CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
 
 
 def synapseLoginHelper(args):
-    if args.config:
+    if args.synapseConfig:
         syn = synapseclient.Synapse(configPath=args.synapseConfig)
     else:
         syn = synapseclient.Synapse()
