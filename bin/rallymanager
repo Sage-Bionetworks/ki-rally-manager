@@ -55,7 +55,7 @@ def getRallies(syn, args):
 
 def getSprints(syn, args):
     config = json.load(file(args.config))
-    df = manager.getSprints(syn=synapseclient.login(silent=True),
+    df = manager.getSprints(syn=syn,
                               rallyAdminProjectId=config.get("rallyAdminProjectId", None),
                               rallyNumber=args.rallyNumber)
     
@@ -91,7 +91,7 @@ def main():
     syn = synapseclient.Synapse(configPath=args.synapseConfig)
     syn.login(silent=True)
 
-    args.func(args)
+    args.func(syn, args)
 
 if __name__ == "__main__":
     main()
