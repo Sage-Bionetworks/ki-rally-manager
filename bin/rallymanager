@@ -48,16 +48,26 @@ def createSprint(syn, args):
 
 def getRallies(syn, args):
     logger.info("Getting rallies.")
-    config = json.load(open(args.config))
+    if not args.adminProjectId:
+        config = json.load(open(args.config))
+        adminProjectId = config.get("rallyAdminProjectId", None)
+    else:
+        adminProjectId = args.adminProjectId
+
     df = manager.getRallies(syn=syn,
-                              rallyAdminProjectId=config.get("rallyAdminProjectId", None))
+                              rallyAdminProjectId=adminProjectId)
     df.to_csv(sys.stdout)
 
 def getSprints(syn, args):
-    config = json.load(open(args.config))
+    if not args.adminProjectId:
+        config = json.load(open(args.config))
+        adminProjectId = config.get("rallyAdminProjectId", None)
+    else:
+        adminProjectId = args.adminProjectId
+
     df = manager.getSprints(syn=syn,
-                              rallyAdminProjectId=config.get("rallyAdminProjectId", None),
-                              rallyNumber=args.rallyNumber)
+                            rallyAdminProjectId=adminProjectId,
+                            rallyNumber=args.rallyNumber)
     
     df.to_csv(sys.stdout)
 
@@ -68,6 +78,8 @@ def main():
 
     parser.add_argument('--config', type=str, default=None,
                         help="Path to KI rallies configuration file")
+    parser.add_argument('--adminProjectId', type=str, default=None,
+                        help="Synapse ID of the root project for administration")
     parser.add_argument('--synapseConfig', type=str, default=synapseclient.client.CONFIG_FILE,
                         help="Path to Synapse configuration file")
 
