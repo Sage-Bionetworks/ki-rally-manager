@@ -42,19 +42,19 @@ CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
               ])
 
 def createSprint(syn, args):
-    config = json.load(file(args.config))
+    config = json.load(open(args.config))
     manager.createSprint(syn=syn,
                            rallyNumber=args.rallyNumber, sprintLetter=args.sprintLetter)
 
 def getRallies(syn, args):
     logger.info("Getting rallies.")
-    config = json.load(file(args.config))
+    config = json.load(open(args.config))
     df = manager.getRallies(syn=syn,
                               rallyAdminProjectId=config.get("rallyAdminProjectId", None))
     df.to_csv(sys.stdout)
 
 def getSprints(syn, args):
-    config = json.load(file(args.config))
+    config = json.load(open(args.config))
     df = manager.getSprints(syn=syn,
                               rallyAdminProjectId=config.get("rallyAdminProjectId", None),
                               rallyNumber=args.rallyNumber)
