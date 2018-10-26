@@ -3,16 +3,16 @@
  "wikiTaskTemplateId": "syn12286728",
  "wikiRallyTemplateId": "syn12286642",
  "allFilesSchemaId": "syn12180518",
- "defaultRallyTeamMembers": [],
+ "defaultRallyTeamMembers": [3372480, 3372480, 3367559],
  "rallyAdminTeamPermissions": ["DOWNLOAD", "CHANGE_PERMISSIONS",
                                "CHANGE_SETTINGS", "MODERATE", "READ",
                                "UPDATE", "DELETE", "CREATE"],
  "sprintFolders": ["Data",
                   "Research Questions",
                   "Results",
-                  "Sprint kickoff",
-                  "Report out",
-                  "Timeline"
+                  "Sprint Planning",
+                  "Sprint Output",
+                  "Timelines"
                  ],
  
  "posts": [{"title": "Daily Discussion",
