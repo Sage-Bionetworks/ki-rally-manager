@@ -16,7 +16,8 @@ logger.setLevel(logging.INFO)
 def createSprint(syn, args):
     config = json.load(open(args.config))
     manager.createSprint(syn=syn,
-                           rallyNumber=args.rallyNumber, sprintLetter=args.sprintLetter)
+                         rallyNumber=args.rallyNumber,
+                         sprintLetter=args.sprintLetter)
 
 def getRallies(syn, args):
     logger.info("Getting rallies.")
