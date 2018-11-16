@@ -5,6 +5,8 @@ import logging
 import synapseclient
 import pandas
 
+from . import config
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -16,28 +18,28 @@ RALLY_ADMIN_PROJECT_ID = "syn11645282"
 # rallyTableId - Synapse ID of table that holds all rallies
 # wikiMasterTemplateId - Synapse ID of the Wiki master template
 # taskTableTemplateId - Synapse ID of the schema of the task table template
-CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
-              rallyAdminProjectId = "syn11645282",
-              wikiTaskTemplateId = "syn12286728",
-              wikiRallyTemplateId = "syn12286642",
-              allFilesSchemaId = "syn12180518",
-              # defaultRallyTeamMembers = ["3372480", "3367559", "3377336"],
-              defaultRallyTeamMembers = [],
-              rallyAdminTeamPermissions = ['DOWNLOAD', 'CHANGE_PERMISSIONS',
-                                           'CHANGE_SETTINGS', 'MODERATE', 'READ',
-                                           'UPDATE', 'DELETE', 'CREATE'],
-              # Folder structure to create in the sprint project
-              sprintFolders = ["Data",
-                               "Research Questions",
-                               "Results", # (images, graphics)
-                               "Sprint kickoff", # (minutes/decks)
-                               "Report out", # (deck, meeting recordings)
-                               "Timeline" # either a 2 or 4 week sprint
-              ],
+# CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
+#               rallyAdminProjectId = "syn11645282",
+#               wikiTaskTemplateId = "syn12286728",
+#               wikiRallyTemplateId = "syn12286642",
+#               allFilesSchemaId = "syn12180518",
+#               # defaultRallyTeamMembers = ["3372480", "3367559", "3377336"],
+#               defaultRallyTeamMembers = [],
+#               rallyAdminTeamPermissions = ['DOWNLOAD', 'CHANGE_PERMISSIONS',
+#                                            'CHANGE_SETTINGS', 'MODERATE', 'READ',
+#                                            'UPDATE', 'DELETE', 'CREATE'],
+#               # Folder structure to create in the sprint project
+#               sprintFolders = ["Data",
+#                                "Research Questions",
+#                                "Results", # (images, graphics)
+#                                "Sprint kickoff", # (minutes/decks)
+#                                "Report out", # (deck, meeting recordings)
+#                                "Timeline" # either a 2 or 4 week sprint
+#               ],
 
-              posts = [{'title': 'Daily Discussion',
-                        'messageMarkdown': 'Use this post for a daily checkin.'}
-              ])
+#               posts = [{'title': 'Daily Discussion',
+#                         'messageMarkdown': 'Use this post for a daily checkin.'}
+#               ])
 
 # rallyJoinText = """This invitation to join Synapse is for your participation in the "ki Sprint %(sprintId)s". If you haven't already done so, please register, using your name and affiliation in your Profile. Once you have registered, you will be added to the Rally Team (https://www.synapse.org/#!Team:%(rallyTeamId)s) and be able to access the Project for the sprint (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/).
 # In order to upload content in Synapse, you will need to complete the Certified User quiz. More information can be found here: http://docs.synapse.org/articles/getting_started.html#becoming-a-certified-user
@@ -173,6 +175,26 @@ def findByNameOrCreate(syn, entity):
 
     return entity
 
+def inviteToTeam(syn, teamId, individualId, manager=False):
+    membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(teamId),
+                                                                                                      individualId=individualId))
+    if not membershipStatus['isMember']:
+        invite = {'teamId': str(teamId), 'inviteeId': individualId}
+        invite = syn.restPOST("/membershipInvitation", body=json.dumps(invite))
+
+        if manager:
+            # Promote to team manager
+            newresourceaccess = {'principalId': individualId,
+                                 'accessType': ['SEND_MESSAGE', 'READ',
+                                                'UPDATE', 'TEAM_MEMBERSHIP_UPDATE',
+                                                'DELETE']}
+
+            acl['resourceAccess'].append(newresourceaccess)
+
+            # Update ACL so the new users are managers
+            acl = syn.restPUT("/team/acl", body=json.dumps(acl))
+
+    return invite
 
 def createRallyTeam(syn, teamName, defaultMembers=[]):
     """Create a rally team.
@@ -186,26 +208,11 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
 
     # Invite default users to the team if they are not already in it
     for individualId in defaultMembers:
-        membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(rallyTeam.id),
-                                                                                                          individualId=individualId))
-        if not membershipStatus['isMember']:
-            invite = {'teamId': str(rallyTeam.id), 'inviteeId': individualId}
-            invite = syn.restPOST("/membershipInvitation", body=json.dumps(invite))
-
-            # Promote to team manager
-            newresourceaccess = {'principalId': individualId,
-                                 'accessType': ['SEND_MESSAGE', 'READ',
-                                                'UPDATE', 'TEAM_MEMBERSHIP_UPDATE',
-                                                'DELETE']}
-
-            acl['resourceAccess'].append(newresourceaccess)
-
-    # Update ACL so the new users are managers
-    acl = syn.restPUT("/team/acl", body=json.dumps(acl))
+        invite = inviteToTeam(syn, teamId=rallyTeam.id, manager=True)
 
     return syn.getTeam(rallyTeam.id)
 
-def createRally(syn, rallyNumber, config=CONFIG, otherPermissions=None):
+def createRally(syn, rallyNumber, config=config.DEFAULT_CONFIG):
 
     rallyProject = getRally(syn, config['rallyAdminProjectId'], rallyNumber=rallyNumber)
 
@@ -228,9 +235,6 @@ def createRally(syn, rallyNumber, config=CONFIG, otherPermissions=None):
     taskTableTemplateId = rallyAdminProject.annotations.taskTableTemplateId[0]
 
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
-
-    if otherPermissions:
-        teamPermissionsDict.update(otherPermissions)
 
     # This is a Project View (table) of a list of rallies
     # in the HBGDki Working Group Project
@@ -282,6 +286,7 @@ def createRally(syn, rallyNumber, config=CONFIG, otherPermissions=None):
         wiki = syn.store(synapseclient.Wiki(owner=rallyProject,
                                             markdownFile=rallyWikiMasterTemplate.path))
         # wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
+        wiki.markdown = wiki.markdown.replace('RALLY_ID', str(rallyNumber))
         wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
         wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
         wiki = syn.store(wiki)
@@ -296,11 +301,13 @@ def createRally(syn, rallyNumber, config=CONFIG, otherPermissions=None):
 
     return rallyProject
 
-def createSprint(syn, rallyNumber, sprintLetter, config=CONFIG, otherPermissions=None):
+def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config.DEFAULT_CONFIG):
 
     # Sprint Configuration
     sprintNumber = "%s%s" % (rallyNumber, sprintLetter)
-    sprintTitle = "Sprint %s" % (sprintNumber, )
+    if not sprintTitle:
+        sprintTitle = "Sprint %s" % (sprintNumber, )
+    
     sprintName = "ki %s" % (sprintTitle, )
 
     consortium = config.get('consortium', None)
@@ -317,9 +324,6 @@ def createSprint(syn, rallyNumber, sprintLetter, config=CONFIG, otherPermissions
     taskTableTemplateId = rallyAdminProject.annotations.taskTableTemplateId[0]
 
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
-
-    if otherPermissions:
-        teamPermissionsDict.update(otherPermissions)
 
     # This is a Project View (table) of a list of rallies
     # in the HBGDki Working Group Project
@@ -342,7 +346,7 @@ def createSprint(syn, rallyNumber, sprintLetter, config=CONFIG, otherPermissions
     allFilesTableColumns = list(syn.getColumns(config['allFilesSchemaId']))
 
 
-    rallyProject = createRally(syn, rallyNumber=rallyNumber, config=config, otherPermissions=otherPermissions)
+    rallyProject = createRally(syn, rallyNumber=rallyNumber, config=config)
 
     # Get the rally team.
     rallyTeam = syn.getTeam(rallyProject.annotations.get('rallyTeam', None)[0])
