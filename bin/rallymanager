@@ -61,6 +61,7 @@ def main():
     parser_create_sprint = subparsers.add_parser('create-sprint', help='Create sprint.')
     parser_create_sprint.add_argument('rallyNumber', type=int, help="The rally number.")
     parser_create_sprint.add_argument('sprintLetter', type=str, help="The sprint letter.")
+    parser_create_sprint.add_argument('--sprintTitle', type=str, default=None, help='The sprint title [default: %(default)s')
     parser_create_sprint.set_defaults(func=createSprint)
     
     parser_get_rallies = subparsers.add_parser('get-rallies', help='Get rallies.')
