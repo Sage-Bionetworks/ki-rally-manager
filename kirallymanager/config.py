@@ -19,8 +19,8 @@ DEFAULT_CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
                       
                       posts = [{'title': 'Daily Discussion',
                                 'messageMarkdown': 'Use this post for a daily checkin.'}],
-                      rallyAdminTeamId: "3367511",
-                      rallyTableId: "syn11645289",
-                      wikiMasterTemplateId: "syn12077749",
-                      taskTableTemplateId: "syn17016474",
-                      sprintTableId: "syn11673548")
+                      rallyAdminTeamId = "3367511",
+                      rallyTableId = "syn11645289",
+                      wikiMasterTemplateId = "syn12077749",
+                      taskTableTemplateId = "syn17016474",
+                      sprintTableId = "syn11673548")
