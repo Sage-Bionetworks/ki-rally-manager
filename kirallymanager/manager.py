@@ -151,13 +151,6 @@ def getOrCreateSchema(syn, parent, name, columns):
 
     return schema
 
-_concreteToEntityType = {'org.sagebionetworks.repo.model.table.TableEntity': 'table',
-                         'org.sagebionetworks.repo.model.Folder': 'folder',
-                         'org.sagebionetworks.repo.model.File': 'file',
-                         '': 'link',
-                         'org.sagebionetworks.repo.model.table.EntityView': 'entityview'
-                         ''}
-
 def findByNameOrCreate(syn, entity):
     """Get an existing entity by name and parent or create a new one.
 
