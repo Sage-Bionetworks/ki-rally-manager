@@ -10,41 +10,6 @@ from . import config
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-RALLY_ADMIN_PROJECT_ID = "syn11645282"
-
-# There are other required configuration values that are currently annotations
-# on the rally admin project. These are:
-# rallyAdminTeamId - the user ID of the rally administration team - added by default to permissions
-# rallyTableId - Synapse ID of table that holds all rallies
-# wikiMasterTemplateId - Synapse ID of the Wiki master template
-# taskTableTemplateId - Synapse ID of the schema of the task table template
-# CONFIG = dict(consortium = "Bill and Melinda Gates Foundation",
-#               rallyAdminProjectId = "syn11645282",
-#               wikiTaskTemplateId = "syn12286728",
-#               wikiRallyTemplateId = "syn12286642",
-#               allFilesSchemaId = "syn12180518",
-#               # defaultRallyTeamMembers = ["3372480", "3367559", "3377336"],
-#               defaultRallyTeamMembers = [],
-#               rallyAdminTeamPermissions = ['DOWNLOAD', 'CHANGE_PERMISSIONS',
-#                                            'CHANGE_SETTINGS', 'MODERATE', 'READ',
-#                                            'UPDATE', 'DELETE', 'CREATE'],
-#               # Folder structure to create in the sprint project
-#               sprintFolders = ["Data",
-#                                "Research Questions",
-#                                "Results", # (images, graphics)
-#                                "Sprint kickoff", # (minutes/decks)
-#                                "Report out", # (deck, meeting recordings)
-#                                "Timeline" # either a 2 or 4 week sprint
-#               ],
-
-#               posts = [{'title': 'Daily Discussion',
-#                         'messageMarkdown': 'Use this post for a daily checkin.'}
-#               ])
-
-# rallyJoinText = """This invitation to join Synapse is for your participation in the "ki Sprint %(sprintId)s". If you haven't already done so, please register, using your name and affiliation in your Profile. Once you have registered, you will be added to the Rally Team (https://www.synapse.org/#!Team:%(rallyTeamId)s) and be able to access the Project for the sprint (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/).
-# In order to upload content in Synapse, you will need to complete the Certified User quiz. More information can be found here: http://docs.synapse.org/articles/getting_started.html#becoming-a-certified-user
-# To get help, feel free to ask questions in the discussion forum (https://www.synapse.org/#!Synapse:%(sprintSynapseId)s/discussion/) and visit our documentation page at http://docs.synapse.org/."""
-
 def getRally(syn, rallyAdminProjectId, rallyNumber):
     """Get a rally by number."""
 
@@ -222,10 +187,10 @@ def createRally(syn, rallyNumber, config=config.DEFAULT_CONFIG):
     # Get locations of templates, team IDs, etc.
     rallyAdminProject = syn.get(config['rallyAdminProjectId'])
 
-    rallyAdminTeamId = rallyAdminProject.annotations.rallyAdminTeamId[0]
-    rallyTableId = rallyAdminProject.annotations.rallyTableId[0]
-    wikiMasterTemplateId = rallyAdminProject.annotations.wikiMasterTemplateId[0]
-    taskTableTemplateId = rallyAdminProject.annotations.taskTableTemplateId[0]
+    rallyAdminTeamId = config['rallyAdminTeamId']
+    rallyTableId = config['rallyTableId']
+    wikiMasterTemplateId = config['wikiMasterTemplateId']
+    taskTableTemplateId = config['taskTableTemplateId']
 
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
 
@@ -309,12 +274,12 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
 
     # Get locations of templates, team IDs, etc.
     rallyAdminProject = syn.get(config['rallyAdminProjectId'])
-    
-    rallyAdminTeamId = rallyAdminProject.annotations.rallyAdminTeamId[0]
-    rallyTableId = rallyAdminProject.annotations.rallyTableId[0]
-    sprintTableId = rallyAdminProject.annotations.sprintTableId[0]
-    wikiMasterTemplateId = rallyAdminProject.annotations.wikiMasterTemplateId[0]
-    taskTableTemplateId = rallyAdminProject.annotations.taskTableTemplateId[0]
+
+    rallyAdminTeamId = config['rallyAdminTeamId']
+    rallyTableId = config['rallyTableId']
+    wikiMasterTemplateId = config['wikiMasterTemplateId']
+    taskTableTemplateId = config['taskTableTemplateId']
+    sprintTableId = config['sprintTableId']
 
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
 
