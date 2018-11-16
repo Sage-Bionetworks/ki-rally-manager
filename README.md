@@ -33,3 +33,10 @@ rallymanager -c CONFIG.json get-rallies
 rallymanager -c CONFIG.json get-rallies [RALLYNUMBER]
 ```
 
+## Docker
+
+Mount a [Synapse configuration file](https://docs.synapse.org/articles/client_configuration.html) to `/synapseConfig` and use the provided rally configuration file.
+
+```
+docker run -v /home/kdaily/.synapseConfig:/synapseConfig sagebionetworks/ki-rally-manager:latest rallymanager --config /ki-rallies-config.json --synapseConfig /synapseConfig -h
+```
