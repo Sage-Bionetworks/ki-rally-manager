@@ -17,7 +17,8 @@ def createSprint(syn, args):
     config = json.load(open(args.config))
     manager.createSprint(syn=syn,
                          rallyNumber=args.rallyNumber,
-                         sprintLetter=args.sprintLetter)
+                         sprintLetter=args.sprintLetter,
+                         sprintTitle=args.sprintTitle)
 
 def getRallies(syn, args):
     logger.info("Getting rallies.")
