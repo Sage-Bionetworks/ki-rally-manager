@@ -170,7 +170,7 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
 
     return syn.getTeam(rallyTeam.id)
 
-def createRally(syn, rallyNumber, config=config.DEFAULT_CONFIG):
+def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG):
 
     rallyProject = getRally(syn, config['rallyAdminProjectId'], rallyNumber=rallyNumber)
 
@@ -181,7 +181,9 @@ def createRally(syn, rallyNumber, config=config.DEFAULT_CONFIG):
     rallyStart = config.get('rallyStart', None)
     rallyEnd = config.get('rallyEnd', None)
 
-    rallyTitle = "ki Rally %s" % (rallyNumber, )
+    if not rallyTitle:
+        rallyTitle = "ki Rally %s" % (rallyNumber, )
+    
     rallyTeamName = "HBGDki Rally %s" % (rallyNumber, )
 
     # Get locations of templates, team IDs, etc.
