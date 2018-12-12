@@ -18,7 +18,14 @@ def createSprint(syn, args):
     manager.createSprint(syn=syn,
                          rallyNumber=args.rallyNumber,
                          sprintLetter=args.sprintLetter,
-                         sprintTitle=args.sprintTitle)
+                         sprintTitle=args.sprintTitle,
+                         config=config)
+
+def createRally(syn, args):
+    config = json.load(open(args.config))
+    manager.createRally(syn=syn,
+                        rallyNumber=args.rallyNumber,
+                        config=config)
 
 def getRallies(syn, args):
     logger.info("Getting rallies.")
@@ -59,6 +66,11 @@ def main():
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
+    parser_create_rally = subparsers.add_parser('create-rally', help='Create rally.')
+    parser_create_rally.add_argument('rallyNumber', type=int, help="The rally number.")
+    parser_create_rally.set_defaults(func=createRally)
+
+    
     parser_create_sprint = subparsers.add_parser('create-sprint', help='Create sprint.')
     parser_create_sprint.add_argument('rallyNumber', type=int, help="The rally number.")
     parser_create_sprint.add_argument('sprintLetter', type=str, help="The sprint letter.")
