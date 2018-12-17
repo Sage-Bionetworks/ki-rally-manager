@@ -18,7 +18,7 @@ def createSprint(syn, args):
     manager.createSprint(syn=syn,
                          rallyNumber=args.rallyNumber,
                          sprintLetter=args.sprintLetter,
-                         sprintTitle=args.sprintTitle,
+                         sprintTitle=args.title,
                          config=config)
 
 def createRally(syn, args):
