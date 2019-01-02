@@ -166,7 +166,7 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
 
     # Invite default users to the team if they are not already in it
     for individualId in defaultMembers:
-        invite = inviteToTeam(syn, teamId=rallyTeam.id, manager=True)
+        invite = inviteToTeam(syn, teamId=rallyTeam.id, individualId=individualId, manager=True)
 
     return syn.getTeam(rallyTeam.id)
 
