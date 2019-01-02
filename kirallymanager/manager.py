@@ -136,6 +136,9 @@ def findByNameOrCreate(syn, entity):
 def inviteToTeam(syn, teamId, individualId, manager=False):
     membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(teamId),
                                                                                                       individualId=individualId))
+
+    acl = syn.restGET("/team/%s/acl" % (str(teamId), ))
+    
     if not membershipStatus['isMember']:
         invite = {'teamId': str(teamId), 'inviteeId': individualId}
         invite = syn.restPOST("/membershipInvitation", body=json.dumps(invite))
@@ -162,7 +165,6 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
     """
 
     rallyTeam = createTeam(syn, name=teamName)
-    acl = syn.restGET("/team/%s/acl" % (str(rallyTeam.id), ))
 
     # Invite default users to the team if they are not already in it
     for individualId in defaultMembers:
