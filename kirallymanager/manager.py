@@ -136,8 +136,6 @@ def findByNameOrCreate(syn, entity):
 def inviteToTeam(syn, teamId, individualId, manager=False):
     membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(teamId),
                                                                                                       individualId=individualId))
-
-    acl = syn.restGET("/team/%s/acl" % (str(teamId), ))
     
     if not membershipStatus['isMember']:
         invite = {'teamId': str(teamId), 'inviteeId': individualId}
@@ -150,6 +148,8 @@ def inviteToTeam(syn, teamId, individualId, manager=False):
                                                 'UPDATE', 'TEAM_MEMBERSHIP_UPDATE',
                                                 'DELETE']}
 
+            acl = syn.restGET("/team/%s/acl" % (str(teamId), ))
+            
             acl['resourceAccess'].append(newresourceaccess)
 
             # Update ACL so the new users are managers
