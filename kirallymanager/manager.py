@@ -324,6 +324,7 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
         sprintProject = synapseclient.Project(name=sprintName,
                                               annotations=dict(sprintTitle=sprintTitle,
                                                                sprintNumber=sprintNumber,
+                                                               sprintLetter=sprintLetter,
                                                                rally=rallyNumber,
                                                                rallyId=rallyProject.id,
                                                                sprintStart=sprintStart,
