@@ -403,3 +403,5 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
         # make sure all tables are triggered to be refreshed
         touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyAdminSprintTable.id))
         touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=allFilesWorkingGroupSchema.id))
+
+    return sprintProject
