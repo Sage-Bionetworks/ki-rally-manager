@@ -7,14 +7,14 @@
  "rallyAdminTeamPermissions": ["DOWNLOAD", "CHANGE_PERMISSIONS",
                                "CHANGE_SETTINGS", "MODERATE", "READ",
                                "UPDATE", "DELETE", "CREATE"],
- "sprintFolders": ["Data",
-                  "Research Questions",
-                  "Results",
-                  "Sprint Planning",
-                  "Sprint Output",
-                  "Timelines"
-                 ],
- 
+ "sprintFolders": [
+   [".",
+    ["Timeline", "Results", "Research Questions", "Report Out",
+     "Planning", "Data"],
+    []],
+    ["./Data", ["Auxiliary", "Documentation"], []]
+  ],
+
  "posts": [{"title": "Daily Discussion",
             "messageMarkdown": "Use this post for a daily checkin."}
           ],
