@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='kirallymanager',
-      version='0.1',
+      version='0.5',
       description='Management client for Gates Foundation ki rallies and sprints',
       long_description='Management client for Gates Foundation ki rallies and sprints',
       url='http://github.com/Sage-Bionetworks/ki-rally-manager',
