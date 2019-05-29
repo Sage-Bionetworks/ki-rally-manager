@@ -263,6 +263,32 @@ def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG)
 
     return rallyProject
 
+
+def createFolders(syn, root, folder_list):
+
+    dirlookup = {'.': root}
+
+    for directory, subdirectories, files in folder_list:
+        print("Top Level {} and subdirs {}".format(directory, subdirectories))
+        folder = dirlookup.get(directory, None)
+        if not folder:
+            print("Folder {} not in lookup, creating it".format(folder))
+            folder = syn.store(synapseclient.Folder(directory, 
+                                                    parent=dirlookup[directory]))
+        dirlookup[directory] = folder
+        print("Toplevel dirlookup: {}".format(dirlookup.keys()))
+        for subdir in subdirectories:
+            curr = os.path.join(directory, subdir)
+            print("curr = {}, lookup folder = {}".format(curr, dirlookup.get(curr, None)))
+            subfolder = dirlookup.get(curr, 
+                                      syn.store(synapseclient.Folder(subdir, 
+                                                                     parent=folder)))
+            dirlookup[curr] = subfolder
+            print("subdir dirlookup: {}".format(dirlookup.keys()))
+
+    return dirlookup
+
+
 def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config.DEFAULT_CONFIG):
 
     # Sprint Configuration
@@ -374,9 +400,8 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
             sprintTaskSubwiki = syn.store(sprintTaskSubwiki)
 
         # Create folders
-        for folderName in config['sprintFolders']:
-            folder = syn.store(synapseclient.Folder(name=folderName,
-                                                    parent=sprintProject))
+        folders = createFolders(syn, root=sprintProject,
+                                folder_list=config['sprintFolders'])
 
         # Create a daily checkin discussion post
         forum = syn.restGET("/project/%(projectId)s/forum" % dict(projectId=sprintProject.id))
