@@ -187,7 +187,7 @@ def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG)
     if not rallyTitle:
         rallyTitle = "ki Rally %s" % (rallyNumber, )
     
-    rallyTeamName = "Ki Rally %s" % (rallyNumber, )
+    rallyTeamName = "ki Rally %s" % (rallyNumber, )
 
     # Get locations of templates, team IDs, etc.
     rallyAdminProject = syn.get(config['rallyAdminProjectId'])
