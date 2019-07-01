@@ -11,6 +11,7 @@ from . import config
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+
 def getRally(syn, rallyAdminProjectId, rallyNumber):
     """Get a rally by number."""
 
@@ -28,6 +29,7 @@ def getRally(syn, rallyAdminProjectId, rallyNumber):
         raise ValueError("Found more than one matching rally project.")
 
     return syn.get(ids[0], downloadFile=False)
+
 
 def getSprint(syn, rallyAdminProjectId, rallyNumber, sprintLetter):
     """Get a sprint by number and letter."""
@@ -50,6 +52,7 @@ def getSprint(syn, rallyAdminProjectId, rallyNumber, sprintLetter):
 
     return syn.get(ids[0], downloadFile=False)
 
+
 def getRallies(syn, rallyAdminProjectId):
     """Get list of rally projects."""
     logger.info("Getting rallies from %s" % (rallyAdminProjectId,))
@@ -60,6 +63,7 @@ def getRallies(syn, rallyAdminProjectId):
     df = tbl.asDataFrame()
 
     return df
+
 
 def getSprints(syn, rallyAdminProjectId, rallyNumber=None):
     """Get list of sprint projects."""
@@ -85,6 +89,7 @@ def createTeam(syn, name, *args, **kwargs):
         return syn.store(synapseclient.Team(name=name,
                                             *args, **kwargs))
 
+
 def addToViewScope(viewschema, scopeIds):
     if type(scopeIds) is not list:
         scopeIds = [scopeIds]
@@ -106,6 +111,7 @@ def getOrCreateView(syn, parent, name, viewType, columns=[], scopes=[], add_defa
 
     return view
 
+
 def getOrCreateSchema(syn, parent, name, columns):
     """Get an existing table schema by name and parent or create a new one."""
 
@@ -116,6 +122,7 @@ def getOrCreateSchema(syn, parent, name, columns):
     schema = findByNameOrCreate(syn, schema)
 
     return schema
+
 
 def findByNameOrCreate(syn, entity):
     """Get an existing entity by name and parent or create a new one.
@@ -133,6 +140,7 @@ def findByNameOrCreate(syn, entity):
         entity = entityTmp
 
     return entity
+
 
 def inviteToTeam(syn, teamId, individualId, manager=False):
     membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(teamId),
@@ -158,6 +166,7 @@ def inviteToTeam(syn, teamId, individualId, manager=False):
 
     return invite
 
+
 def createRallyTeam(syn, teamName, defaultMembers=[]):
     """Create a rally team.
 
@@ -172,6 +181,7 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
         _ = inviteToTeam(syn, teamId=rallyTeam.id, individualId=individualId, manager=True)
 
     return syn.getTeam(rallyTeam.id)
+
 
 def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG):
 
@@ -286,7 +296,6 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
 
     rallyAdminTeamId = config['rallyAdminTeamId']
     wikiMasterTemplateId = config['wikiMasterTemplateId']
-    taskTableTemplateId = config['taskTableTemplateId']
     sprintTableId = config['sprintTableId']
 
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
