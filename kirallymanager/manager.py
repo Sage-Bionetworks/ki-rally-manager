@@ -187,7 +187,7 @@ def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG)
     if not rallyTitle:
         rallyTitle = "ki Rally %s" % (rallyNumber, )
     
-    rallyTeamName = "HBGDki Rally %s" % (rallyNumber, )
+    rallyTeamName = "ki Rally %s" % (rallyNumber, )
 
     # Get locations of templates, team IDs, etc.
     rallyAdminProject = syn.get(config['rallyAdminProjectId'])
@@ -200,14 +200,14 @@ def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG)
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
 
     # This is a Project View (table) of a list of rallies
-    # in the HBGDki Working Group Project
+    # in the Ki Working Group Project
     rallyTableSchema = syn.get(rallyTableId)
     
-    # all files table in the hbgdki rally working group project
+    # all files table in the Ki rally working group project
     allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
 
     # The columns for a file view that lists all files in a project.
-    # This is used for a file view in the HBGDki working group, in the rally
+    # This is used for a file view in the Ki working group, in the rally
     # project, and in the sprint project
     allFilesTableColumns = list(syn.getColumns(config['allFilesSchemaId']))
 
@@ -310,22 +310,22 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
 
     # This is a Project View (table) of a list of rallies
-    # in the HBGDki Working Group Project
+    # in the Ki Working Group Project
     rallyTableSchema = syn.get(rallyTableId)
 
     # This is a Project View (table) of a list of sprints
-    # in the HBGDki Working Group Project and in the Rally Project
+    # in the Ki Working Group Project and in the Rally Project
     rallySprintTableSchema = syn.get(sprintTableId)
 
     # The columns in this table for reuse when creating a new one
     # in the Project space
     rallySprintTableColumns = list(syn.getColumns(sprintTableId))
 
-    # all files table in the hbgdki rally working group project
+    # all files table in the Ki rally working group project
     allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
 
     # The columns for a file view that lists all files in a project.
-    # This is used for a file view in the HBGDki working group, in the rally
+    # This is used for a file view in the Ki working group, in the rally
     # project, and in the sprint project
     allFilesTableColumns = list(syn.getColumns(config['allFilesSchemaId']))
 
