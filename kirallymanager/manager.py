@@ -169,7 +169,7 @@ def createRallyTeam(syn, teamName, defaultMembers=[]):
 
     # Invite default users to the team if they are not already in it
     for individualId in defaultMembers:
-        invite = inviteToTeam(syn, teamId=rallyTeam.id, individualId=individualId, manager=True)
+        _ = inviteToTeam(syn, teamId=rallyTeam.id, individualId=individualId, manager=True)
 
     return syn.getTeam(rallyTeam.id)
 
@@ -189,28 +189,14 @@ def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG)
     
     rallyTeamName = "ki Rally %s" % (rallyNumber, )
 
-    # Get locations of templates, team IDs, etc.
-    rallyAdminProject = syn.get(config['rallyAdminProjectId'])
-
     rallyAdminTeamId = config['rallyAdminTeamId']
     rallyTableId = config['rallyTableId']
-    wikiMasterTemplateId = config['wikiMasterTemplateId']
-    taskTableTemplateId = config['taskTableTemplateId']
-
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
 
     # This is a Project View (table) of a list of rallies
     # in the Ki Working Group Project
     rallyTableSchema = syn.get(rallyTableId)
     
-    # all files table in the Ki rally working group project
-    allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
-
-    # The columns for a file view that lists all files in a project.
-    # This is used for a file view in the Ki working group, in the rally
-    # project, and in the sprint project
-    allFilesTableColumns = list(syn.getColumns(config['allFilesSchemaId']))
-
     # Create a rally team.
     rallyTeam = createRallyTeam(syn=syn,
                                 teamName=rallyTeamName,
@@ -260,7 +246,7 @@ def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG)
     rallyTableSchema = syn.store(rallyTableSchema)
 
     # Force refresh of the table
-    touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyTableSchema.id))
+    _ = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyTableSchema.id))
 
     return rallyProject
 
@@ -269,7 +255,7 @@ def createFolders(syn, root, folder_list):
 
     dirlookup = {'.': root}
 
-    for directory, subdirectories, files in folder_list:
+    for directory, subdirectories, _ in folder_list:
         folder = dirlookup.get(directory, None)
         if not folder:
             folder = syn.store(synapseclient.Folder(directory, 
@@ -298,37 +284,15 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
     sprintStart = config.get('sprintStart', None)
     sprintEnd = config.get('sprintEnd', None)
 
-    # Get locations of templates, team IDs, etc.
-    rallyAdminProject = syn.get(config['rallyAdminProjectId'])
-
     rallyAdminTeamId = config['rallyAdminTeamId']
-    rallyTableId = config['rallyTableId']
     wikiMasterTemplateId = config['wikiMasterTemplateId']
     taskTableTemplateId = config['taskTableTemplateId']
     sprintTableId = config['sprintTableId']
 
     teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
 
-    # This is a Project View (table) of a list of rallies
-    # in the Ki Working Group Project
-    rallyTableSchema = syn.get(rallyTableId)
-
-    # This is a Project View (table) of a list of sprints
-    # in the Ki Working Group Project and in the Rally Project
-    rallySprintTableSchema = syn.get(sprintTableId)
-
-    # The columns in this table for reuse when creating a new one
-    # in the Project space
-    rallySprintTableColumns = list(syn.getColumns(sprintTableId))
-
     # all files table in the Ki rally working group project
     allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
-
-    # The columns for a file view that lists all files in a project.
-    # This is used for a file view in the Ki working group, in the rally
-    # project, and in the sprint project
-    allFilesTableColumns = list(syn.getColumns(config['allFilesSchemaId']))
-
 
     rallyProject = createRally(syn, rallyNumber=rallyNumber, config=config)
 
@@ -339,7 +303,9 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
     # the list of permissions to add
     teamPermissionsDict.update({rallyTeam.id: ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']})
 
-    sprintProject = getSprint(syn, config['rallyAdminProjectId'], rallyNumber=rallyNumber, sprintLetter=sprintLetter)
+    sprintProject = getSprint(syn, config['rallyAdminProjectId'], 
+                              rallyNumber=rallyNumber, 
+                              sprintLetter=sprintLetter)
 
     if not sprintProject:
         # Create the sprint project
@@ -366,7 +332,6 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
         for teamId, permissions in list(teamPermissionsDict.items()):
             syn.setPermissions(sprintProject, principalId=teamId, accessType=permissions)
 
-
         try:
             sprintWiki = syn.getWiki(owner=sprintProject)
         except synapseclient.exceptions.SynapseHTTPError:
@@ -377,27 +342,9 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
             sprintWiki.markdown = sprintWiki.markdown.replace('teamId=123', 'teamId=%s' % rallyTeam.id)
             sprintWiki = syn.store(sprintWiki)
 
-        # Add a task table
-        templateTaskSchema = syn.get(taskTableTemplateId) # Template schema
-    
-        newTaskSchema = getOrCreateSchema(syn, parent=sprintProject, name="Tasks",
-                                          columns=templateTaskSchema.properties.columnIds)
-
-        wikiHeaders = syn.getWikiHeaders(sprintProject)
-        wikiHeaders = [x for x in wikiHeaders if x.get('parentId', None) == sprintWiki.id and x.get('title', None) == 'Tasks']
-        
-        if not wikiHeaders:
-            taskWikiTemplate = syn.get(config['wikiTaskTemplateId'])
-            sprintTaskSubwiki = syn.store(synapseclient.Wiki(title="Tasks",
-                                                             owner=sprintProject,
-                                                             parentWikiId=sprintWiki.id,
-                                                             markdownFile=taskWikiTemplate.path))
-            sprintTaskSubwiki.markdown = sprintTaskSubwiki.markdown.replace('syn00000000', newTaskSchema.id)
-            sprintTaskSubwiki = syn.store(sprintTaskSubwiki)
-
         # Create folders
-        folders = createFolders(syn, root=sprintProject,
-                                folder_list=config['sprintFolders'])
+        _ = createFolders(syn, root=sprintProject, 
+                          folder_list=config['sprintFolders'])
 
         # Create a daily checkin discussion post
         forum = syn.restGET("/project/%(projectId)s/forum" % dict(projectId=sprintProject.id))
@@ -423,7 +370,7 @@ def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config
         allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
 
         # make sure all tables are triggered to be refreshed
-        touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyAdminSprintTable.id))
-        touch = syn.tableQuery('select id from %(id)s limit 1' % dict(id=allFilesWorkingGroupSchema.id))
+        _ = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyAdminSprintTable.id))
+        _ = syn.tableQuery('select id from %(id)s limit 1' % dict(id=allFilesWorkingGroupSchema.id))
 
     return sprintProject
