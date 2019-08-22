@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .param_store import ParamStore
-import os
+import logging
+
 import synapseclient
+
+from .param_store import ParamStore
+
+logging.basicConfig()
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
 
 class Synapse:
 
@@ -56,12 +62,13 @@ class Synapse:
     ]
 
     @classmethod
-    def client(cls, tmp_cache_root=False):
+    def client(cls, *args, **kwargs):
         """
         Gets a logged in instance of the synapseclient.
         """
         if not cls._synapse_client:
-            cls._synapse_client = synapseclient.Synapse()
+            LOGGER.debug("Getting a new Synapse client.")
+            cls._synapse_client = synapseclient.Synapse(*args, **kwargs)
             try:
                 cls._synapse_client.login(silent=True)
             except:
@@ -69,4 +76,5 @@ class Synapse:
                 syn_pass = ParamStore.SYNAPSE_PASSWORD()
                 cls._synapse_client.login(syn_user, syn_pass, silent=True)
 
+        LOGGER.debug("Already have a Synapse client, returning it.")
         return cls._synapse_client

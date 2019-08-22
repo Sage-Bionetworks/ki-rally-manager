@@ -6,92 +6,114 @@ import sys
 import json
 import logging
 
-from kirallymanager import manager
-from kirallymanager import config
 import synapseclient
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from kirallymanager import manager
+from kirallymanager.synapse import Synapse
 
-def createSprint(syn, args):
+logging.basicConfig()
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
+
+def create_sprint(args):
+    """Create a sprint.
+    """
+
     config = json.load(open(args.config))
-    manager.createSprint(syn=syn,
-                         rallyNumber=args.rallyNumber,
-                         sprintLetter=args.sprintLetter,
-                         sprintTitle=args.title,
+    manager.create_sprint(rally_number=args.rally_number,
+                          sprint_letter=args.sprint_letter,
+                          sprint_title=args.title,
+                          config=config)
+
+def create_rally(args):
+    """Create a rally.
+    """
+
+    config = json.load(open(args.config))
+    manager.create_rally(rally_number=args.rally_number,
                          config=config)
 
-def createRally(syn, args):
-    config = json.load(open(args.config))
-    manager.createRally(syn=syn,
-                        rallyNumber=args.rallyNumber,
-                        config=config)
+def get_rallies(args):
+    """Get rallies.
+    """
 
-def getRallies(syn, args):
-    logger.info("Getting rallies.")
+    LOGGER.info("Getting rallies.")
     if not args.adminProjectId:
         config = json.load(open(args.config))
-        adminProjectId = config.get("rallyAdminProjectId", None)
+        admin_project_id = config.get("rally_admin_project_id", None)
     else:
-        adminProjectId = args.adminProjectId
+        admin_project_id = args.admin_project_id
 
-    df = manager.getRallies(syn=syn,
-                              rallyAdminProjectId=adminProjectId)
-    df.to_csv(sys.stdout)
+    data_frame = manager.get_rallies(rally_admin_project_id=admin_project_id)
+    data_frame.to_csv(sys.stdout)
 
-def getSprints(syn, args):
-    if not args.adminProjectId:
+def get_sprints(args):
+    """Get sprints.
+    """
+
+    if not args.admin_project_id:
         config = json.load(open(args.config))
-        adminProjectId = config.get("rallyAdminProjectId", None)
+        admin_project_id = config.get("rally_admin_project_id", None)
     else:
-        adminProjectId = args.adminProjectId
+        admin_project_id = args.admin_project_id
 
-    df = manager.getSprints(syn=syn,
-                            rallyAdminProjectId=adminProjectId,
-                            rallyNumber=args.rallyNumber)
-    
-    df.to_csv(sys.stdout)
+    data_frame = manager.get_sprints(rally_admin_project_id=admin_project_id,
+                                     rally_number=args.rally_number)
+
+    data_frame.to_csv(sys.stdout)
 
 def main():
+    """Command line entry point.
+    """
+
     import argparse
-    import synapseclient
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--config', type=str, default=None,
                         help="Path to KI rallies configuration file")
-    parser.add_argument('--adminProjectId', type=str, default=None,
-                        help="Synapse ID of the root project for administration")
-    parser.add_argument('--synapseConfig', type=str, default=synapseclient.client.CONFIG_FILE,
+    parser.add_argument('--admin_project_id', type=str, default=None,
+                        help="Synapse ID of the root project for administration") # pylint: disable=line-too-long
+    parser.add_argument('--synapse_config', type=str,
+                        default=synapseclient.client.CONFIG_FILE,
                         help="Path to Synapse configuration file")
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    parser_create_rally = subparsers.add_parser('create-rally', help='Create rally.')
-    parser_create_rally.add_argument('rallyNumber', type=int, help="The rally number.")
-    parser_create_rally.add_argument('--title', type=str, default=None, help='The rally title [default: %(default)s]')
-    parser_create_rally.set_defaults(func=createRally)
+    parser_create_rally = subparsers.add_parser('create-rally',
+                                                help='Create rally.')
+    parser_create_rally.add_argument('rally_number', type=int,
+                                     help="The rally number.")
+    parser_create_rally.add_argument('--title', type=str, default=None,
+                                     help='The rally title [default: %(default)s]') # pylint: disable=line-too-long
+    parser_create_rally.set_defaults(func=create_rally)
 
-    
-    parser_create_sprint = subparsers.add_parser('create-sprint', help='Create sprint.')
-    parser_create_sprint.add_argument('rallyNumber', type=int, help="The rally number.")
-    parser_create_sprint.add_argument('sprintLetter', type=str, help="The sprint letter.")
-    parser_create_sprint.add_argument('--title', type=str, default=None, help='The sprint title [default: %(default)s]')
-    parser_create_sprint.set_defaults(func=createSprint)
-    
-    parser_get_rallies = subparsers.add_parser('get-rallies', help='Get rallies.')
-    parser_get_rallies.set_defaults(func=getRallies)
-    
-    parser_get_sprints = subparsers.add_parser('get-sprints', help='Get sprints.')
-    parser_get_sprints.add_argument('--rallyNumber', type=int,
-                                    help="The rally number [default: %(default)s].", default=None)
-    parser_get_sprints.set_defaults(func=getSprints)
+    parser_create_sprint = subparsers.add_parser('create-sprint',
+                                                 help='Create sprint.')
+    parser_create_sprint.add_argument('rally_number', type=int,
+                                      help="The rally number.")
+    parser_create_sprint.add_argument('sprint_letter', type=str,
+                                      help="The sprint letter.")
+    parser_create_sprint.add_argument('--title', type=str, default=None,
+                                      help='The sprint title [default: %(default)s]') # pylint: disable=line-too-long
+    parser_create_sprint.set_defaults(func=create_sprint)
+
+    parser_get_rallies = subparsers.add_parser('get-rallies',
+                                               help='Get rallies.')
+    parser_get_rallies.set_defaults(func=get_rallies)
+
+    parser_get_sprints = subparsers.add_parser('get-sprints',
+                                               help='Get sprints.')
+    parser_get_sprints.add_argument('--rally_number', type=int,
+                                    help="The rally number [default: %(default)s].", # pylint: disable=line-too-long
+                                    default=None)
+    parser_get_sprints.set_defaults(func=get_sprints)
 
     args = parser.parse_args()
 
-    syn = synapseclient.Synapse(configPath=args.synapseConfig)
-    syn.login(silent=True)
+    _ = Synapse().client(configPath=args.synapse_config)
 
-    args.func(syn, args)
+    args.func(args)
+
 
 if __name__ == "__main__":
     main()

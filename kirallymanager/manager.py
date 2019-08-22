@@ -1,29 +1,38 @@
+"""Command line interface for the ki rally manager.
+
+"""
+
 import json
 import logging
 import os
 import sys
 
 import synapseclient
-import pandas
 
 from . import config
+from .synapse import Synapse
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logging.basicConfig()
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
 
+MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
+                       'TEAM_MEMBERSHIP_UPDATE', 'DELETE']
 
-def getRally(syn, rallyAdminProjectId, rallyNumber):
+DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
+
+def get_rally(rally_admin_project_id, rally_number):
     """Get a rally by number."""
+    syn = Synapse().client()
+    rally_admin_project = syn.get(rally_admin_project_id)
+    table_id = rally_admin_project.annotations.rallyTableId[0]
+    tbl = syn.tableQuery(f"select id from {table_id} where rally={rally_number}") # pylint: disable=line-too-long
+    data_frame = tbl.asDataFrame()
 
-    rallyAdminProject = syn.get(rallyAdminProjectId)
-    tableId = rallyAdminProject.annotations.rallyTableId[0]
-    tbl = syn.tableQuery("select id from %(tableId)s where rally=%(rallyNumber)s" % dict(tableId=tableId, rallyNumber=rallyNumber))
-    df = tbl.asDataFrame()
+    ids = data_frame.id.tolist()
 
-    ids = df.id.tolist()
-
-    if len(ids) == 0:
-        logger.debug("No rally found.")
+    if not ids:
+        LOGGER.debug("No rally found.")
         return None
     if len(ids) > 1:
         raise ValueError("Found more than one matching rally project.")
@@ -31,21 +40,19 @@ def getRally(syn, rallyAdminProjectId, rallyNumber):
     return syn.get(ids[0], downloadFile=False)
 
 
-def getSprint(syn, rallyAdminProjectId, rallyNumber, sprintLetter):
+def get_sprint(rally_admin_project_id, rally_number, sprint_letter):
     """Get a sprint by number and letter."""
+    syn = Synapse().client()
+    rally_admin_project = syn.get(rally_admin_project_id)
+    table_id = rally_admin_project.annotations.sprintTableId[0]
+    tbl = syn.tableQuery(f"select id from {table_id} where sprintNumber='{rally_number}{sprint_letter}'") # pylint: disable=line-too-long
 
-    rallyAdminProject = syn.get(rallyAdminProjectId)
-    tableId = rallyAdminProject.annotations.sprintTableId[0]
-    tbl = syn.tableQuery("select id from %(tableId)s where sprintNumber='%(rallyNumber)s%(sprintLetter)s'" % dict(tableId=tableId,
-                                                                                                                 rallyNumber=rallyNumber,
-                                                                                                                 sprintLetter=sprintLetter))
+    data_frame = tbl.asDataFrame()
 
-    df = tbl.asDataFrame()
-    
-    ids = df.id.tolist()
+    ids = data_frame.id.tolist()
 
-    if len(ids) == 0:
-        logger.debug("No rally found.")
+    if not ids:
+        LOGGER.debug("No rally found.")
         return None
     if len(ids) > 1:
         raise ValueError("Found more than one matching sprint project.")
@@ -53,34 +60,48 @@ def getSprint(syn, rallyAdminProjectId, rallyNumber, sprintLetter):
     return syn.get(ids[0], downloadFile=False)
 
 
-def getRallies(syn, rallyAdminProjectId):
+def get_rallies(rally_admin_project_id):
     """Get list of rally projects."""
-    logger.info("Getting rallies from %s" % (rallyAdminProjectId,))
-    
-    rallyAdminProject = syn.get(rallyAdminProjectId)
-    tableId = rallyAdminProject.annotations.rallyTableId[0]
-    tbl = syn.tableQuery("select * from %s" % (tableId, ))
-    df = tbl.asDataFrame()
+    syn = Synapse().client()
 
-    return df
+    LOGGER.info("Getting rallies from %s" % (rally_admin_project_id,))
 
+    rally_admin_project = syn.get(rally_admin_project_id)
+    table_id = rally_admin_project.annotations.rallyTableId[0]
+    tbl = syn.tableQuery("select * from %s" % (table_id, ))
 
-def getSprints(syn, rallyAdminProjectId, rallyNumber=None):
-    """Get list of sprint projects."""
-
-    rallyAdminProject = syn.get(rallyAdminProjectId)
-    tblId = rallyAdminProject.annotations.sprintTableId[0]
-    tbl = syn.tableQuery("select * from %s" % (tblId, ))
-    df = tbl.asDataFrame()
-
-    if rallyNumber:
-        df = df[df.rally == rallyNumber]
-
-    return df
+    return tbl.asDataFrame()
 
 
-def createTeam(syn, name, *args, **kwargs):
+def get_sprints(rally_admin_project_id, rally_number=None):
+    """Get list of sprint projects.
+
+    Args:
+        rally_admin_project_id: Synapse Project ID with admin annotations,
+                                including the sprint table ID.
+        rally_number: An integer rally number. If None, return sprints
+                      from all rallies.
+    Returns:
+        A Pandas data frame of sprint information from the
+        Sprint Synapse table.
+
+    """
+    syn = Synapse().client()
+
+    rally_admin_project = syn.get(rally_admin_project_id)
+    table_id = rally_admin_project.annotations.sprintTableId[0]
+    tbl = syn.tableQuery("select * from %s" % (table_id, ))
+    data_frame = tbl.asDataFrame()
+
+    if rally_number:
+        data_frame = data_frame[data_frame.rally == rally_number]
+
+    return data_frame
+
+
+def create_team(name, *args, **kwargs):
     """Create an empty team."""
+    syn = Synapse().client()
 
     try:
         return syn.getTeam(name)
@@ -90,75 +111,98 @@ def createTeam(syn, name, *args, **kwargs):
                                             *args, **kwargs))
 
 
-def addToViewScope(viewschema, scopeIds):
-    if type(scopeIds) is not list:
-        scopeIds = [scopeIds]
+def add_to_view_scope(viewschema, scope_ids):
+    """Adds Synapse containers to the scope of a view.
 
-    existingScopeIds = set(viewschema.properties.scopeIds)
-    existingScopeIds.update([x.replace("syn", "") for x in scopeIds])
-    viewschema.properties.scopeIds = list(existingScopeIds)
+    View scopes should be a set, not an array.
+    This function removes duplicates.
+
+    Args:
+        viewschema: A Synapse View Schema object.
+        scope_ids: A list of scope IDs.
+    Returns:
+        Nothing.
+
+    """
+    existing_scope_ids = set(viewschema.properties.scopeIds)
+    existing_scope_ids.update([x.replace("syn", "") for x in scope_ids])
+    viewschema.properties.scopeIds = list(existing_scope_ids)
 
 
-def getOrCreateView(syn, parent, name, viewType, columns=[], scopes=[], add_default_columns=True):
-    view = synapseclient.EntityViewSchema(name=name,
-                                          parent=parent,
-                                          scopes=scopes,
-                                          type=viewType,
-                                          columns=columns,
-                                          add_default_columns=add_default_columns)
+def get_or_create_view(*args, **kwargs):
+    """Wrapper to get an entity view by name, or create one if not found.
 
-    view = findByNameOrCreate(syn, view)
+    Args:
+        Same arguments as synapseclient.EntityViewSchema.
+    Returns:
+        A synapseclient.EntityViewSchema.
+
+    """
+    view = synapseclient.EntityViewSchema(*args, **kwargs) # pylint: disable=line-too-long
+
+    view = find_by_name_or_create(view)
 
     return view
 
 
-def getOrCreateSchema(syn, parent, name, columns):
+def get_or_create_schema(parent, name, columns):
     """Get an existing table schema by name and parent or create a new one."""
 
     schema = synapseclient.Schema(name=name,
                                   parent=parent,
                                   columns=columns)
 
-    schema = findByNameOrCreate(syn, schema)
+    schema = find_by_name_or_create(schema)
 
     return schema
 
 
-def findByNameOrCreate(syn, entity):
+def find_by_name_or_create(entity):
     """Get an existing entity by name and parent or create a new one.
 
     """
+    syn = Synapse().client()
 
     try:
         entity = syn.store(entity, createOrUpdate=False)
     except synapseclient.exceptions.SynapseHTTPError:
-        entityObj = syn.restPOST("/entity/child",
-                                 body=json.dumps({"parentId": entity.properties.get("parentId", None),
-                                                  "entityName": entity.name}))
-        entityTmp = syn.get(entityObj['id'], downloadFile=False)
-        assert entityTmp.properties.concreteType == entityTmp.properties.concreteType, "Different types."
-        entity = entityTmp
+        body = json.dumps({"parentId": entity.properties.get("parentId", None),
+                           "entityName": entity.name})
+        entity_obj = syn.restPOST("/entity/child",
+                                  body=body)
+        entity_tmp = syn.get(entity_obj['id'], downloadFile=False)
+        assert entity.properties.concreteType == entity_tmp.properties.concreteType, "Different types." # pylint: disable=line-too-long
+        entity = entity_tmp
 
     return entity
 
 
-def inviteToTeam(syn, teamId, individualId, manager=False):
-    membershipStatus = syn.restGET("/team/%(teamId)s/member/%(individualId)s/membershipStatus" % dict(teamId=str(teamId),
-                                                                                                      individualId=individualId))
-    
-    if not membershipStatus['isMember']:
-        invite = {'teamId': str(teamId), 'inviteeId': individualId}
+def invite_to_team(team_id, individual_id, manager=False):
+    """Invite an individual to join a team.
+
+    Args:
+        team_id: A Synapse Team ID.
+        individual_id: A Synapse User ID.
+        manager: Flag to decide if the invited user should be a team manager.
+    Returns:
+        A Synapse invitation object.
+    """
+
+    syn = Synapse().client()
+
+    membership_status = syn.restGET(f"/team/{team_id}/member/{individual_id}/membershipStatus") # pylint: disable=line-too-long
+
+    if not membership_status['isMember']:
+        invite = {'teamId': str(team_id), 'inviteeId': individual_id}
         invite = syn.restPOST("/membershipInvitation", body=json.dumps(invite))
 
         if manager:
             # Promote to team manager
-            newresourceaccess = {'principalId': individualId,
-                                 'accessType': ['SEND_MESSAGE', 'READ',
-                                                'UPDATE', 'TEAM_MEMBERSHIP_UPDATE',
-                                                'DELETE']}
+            newresourceaccess = {'principalId': individual_id,
+                                 'accessType': MANAGER_PERMISSIONS}
 
-            acl = syn.restGET("/team/%s/acl" % (str(teamId), ))
-            
+            acl = syn.restGET(f"/team/{team_id}/acl")
+
             acl['resourceAccess'].append(newresourceaccess)
 
             # Update ACL so the new users are managers
@@ -167,219 +211,284 @@ def inviteToTeam(syn, teamId, individualId, manager=False):
     return invite
 
 
-def createRallyTeam(syn, teamName, defaultMembers=[]):
+def create_rally_team(team_name, default_members=None):
     """Create a rally team.
 
     This should be idempotent, but isn't, hence the special function here.
-    Should remove this once fixed (https://sagebionetworks.jira.com/browse/SYNPY-723)
+    Should remove this once fixed:
+    https://sagebionetworks.jira.com/browse/SYNPY-723
     """
+    syn = Synapse().client()
 
-    rallyTeam = createTeam(syn, name=teamName)
+    rally_team = create_team(name=team_name)
+    LOGGER.debug(f"Creating the team {team_name}.")
 
     # Invite default users to the team if they are not already in it
-    for individualId in defaultMembers:
-        _ = inviteToTeam(syn, teamId=rallyTeam.id, individualId=individualId, manager=True)
+    if default_members:
+        for individual_id in default_members:
+            _ = invite_to_team(team_id=rally_team.id,
+                               individual_id=individual_id,
+                               manager=True)
+    LOGGER.debug(f"Invited users ({default_members}) to the team.")
+    return syn.getTeam(rally_team.id)
 
-    return syn.getTeam(rallyTeam.id)
 
+def create_rally(rally_number, rally_title=None, config=config.DEFAULT_CONFIG):
+    """Create a rally project.
 
-def createRally(syn, rallyNumber, rallyTitle=None, config=config.DEFAULT_CONFIG):
+    Args:
+        rally_number: Integer rally number.
+        rally_title: Optional rally title used as the project name.
+        config: A dictionary with configuration options.
+    Returns:
+        A synapseclient.Project object.
 
-    rallyProject = getRally(syn, config['rallyAdminProjectId'], rallyNumber=rallyNumber)
+    """
+    syn = Synapse().client()
 
-    if rallyProject:
-        return rallyProject
-    
+    rally_project = get_rally(config['rally_admin_project_id'],
+                              rally_number=rally_number)
+
+    if rally_project:
+        LOGGER.info(f"Rally {rally_number} already exists.")
+        return rally_project
+
     consortium = config.get('consortium', None)
-    rallyStart = config.get('rallyStart', None)
-    rallyEnd = config.get('rallyEnd', None)
 
-    if not rallyTitle:
-        rallyTitle = "ki Rally %s" % (rallyNumber, )
-    
-    rallyTeamName = "ki Rally %s" % (rallyNumber, )
+    if not rally_title:
+        rally_title = "ki Rally %s" % (rally_number, )
 
-    rallyAdminTeamId = config['rallyAdminTeamId']
-    rallyTableId = config['rallyTableId']
-    teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
+    rally_team_name = "ki Rally %s" % (rally_number, )
 
-    # This is a Project View (table) of a list of rallies
-    # in the Ki Working Group Project
-    rallyTableSchema = syn.get(rallyTableId)
-    
+    rally_admin_team_id = config['rally_admin_team_id']
+    rally_table_id = config['rallyTableId']
+    team_permissions = {rally_admin_team_id: config['rallyAdminTeamPermissions']} # pylint: disable=line-too-long
+
     # Create a rally team.
-    rallyTeam = createRallyTeam(syn=syn,
-                                teamName=rallyTeamName,
-                                defaultMembers=config['defaultRallyTeamMembers'])
+    rally_team = create_rally_team(team_name=rally_team_name,
+                                   default_members=config['defaultRallyTeamMembers']) # pylint: disable=line-too-long
 
     # Add the rally team with it's default permissions to
     # the list of permissions to add
-    teamPermissionsDict.update({rallyTeam.id: ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']})
+    team_permissions.update({rally_team.id: DEFAULT_PERMISSIONS})
 
     # Create the Rally Project
-    rallyProject = synapseclient.Project(name=rallyTitle,
-                                         annotations=dict(rally=rallyNumber,
-                                                          consortium=consortium,
-                                                          rallyStart=rallyStart,
-                                                          rallyEnd=rallyEnd,
-                                                          rallyTeam=rallyTeam.id
-                                         ))
+    annotations = dict(rally=rally_number,
+                       consortium=consortium,
+                       rallyStart=None,
+                       rallyEnd=None,
+                       rallyTeam=rally_team.id)
+
+    rally_project = synapseclient.Project(name=rally_title,
+                                          annotations=annotations)
 
     try:
-        rallyProject = syn.store(rallyProject, createOrUpdate=False)
+        rally_project = syn.store(rally_project, createOrUpdate=False)
+        LOGGER.info("Rally project created.")
     except synapseclient.exceptions.SynapseHTTPError:
-        rallyProjectObj = syn.restPOST("/entity/child",
-                                       body=json.dumps({"entityName": rallyTitle}))
-        rallyProject = syn.get(rallyProjectObj['id'])
-        
+        body = json.dumps({"entityName": rally_title})
+        rally_proj_obj = syn.restPOST("/entity/child", body=body)
+        rally_project = syn.get(rally_proj_obj['id'])
+
     # Set permissions to the rally project
-    for teamId, permissions in list(teamPermissionsDict.items()):
-        syn.setPermissions(rallyProject, principalId=teamId,
+    for team_id, permissions in list(team_permissions.items()):
+        syn.setPermissions(rally_project, principalId=team_id,
                            accessType=permissions)
 
     # Add the wiki, only if it doesn't already exist
     try:
-        wiki = syn.getWiki(owner=rallyProject)
+        wiki = syn.getWiki(owner=rally_project)
     except synapseclient.exceptions.SynapseHTTPError:
-        rallyWikiMasterTemplate = syn.get(config['wikiRallyTemplateId'])
-        wiki = syn.store(synapseclient.Wiki(owner=rallyProject,
-                                            markdownFile=rallyWikiMasterTemplate.path))
-        # wiki.markdown = wiki.markdown.replace('syn00000000', rallySprintTable.id)
-        wiki.markdown = wiki.markdown.replace('RALLY_ID', str(rallyNumber))
-        wiki.markdown = wiki.markdown.replace('id=0000000', 'id=%s' % rallyTeam.id)
-        wiki.markdown = wiki.markdown.replace('teamId=0000000', 'teamId=%s' % rallyTeam.id)
+        rally_wiki_master_template = syn.get(config['wikiRallyTemplateId'])
+        wiki = synapseclient.Wiki(owner=rally_project,
+                                  markdownFile=rally_wiki_master_template.path)
+        wiki = syn.store(wiki)
+        wiki.markdown = wiki.markdown.replace('RALLY_ID',
+                                              str(rally_number))
+        wiki.markdown = wiki.markdown.replace('id=0000000',
+                                              f'id={rally_team.id}')
+        wiki.markdown = wiki.markdown.replace('teamId=0000000',
+                                              f'teamId={rally_team.id}')
         wiki = syn.store(wiki)
 
-    # Add the Rally Project to the list of rallies in the working group project view
-    rallyTableSchema = syn.get(rallyTableId)
-    addToViewScope(rallyTableSchema, rallyProject.id)
-    rallyTableSchema = syn.store(rallyTableSchema)
+    LOGGER.info("Set the project wiki.")
+
+    # Add the Rally Project to the list of rallies
+    # in the working group project view
+    rally_table_schema = syn.get(rally_table_id)
+    add_to_view_scope(rally_table_schema, [rally_project.id])
+    rally_table_schema = syn.store(rally_table_schema)
 
     # Force refresh of the table
-    _ = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyTableSchema.id))
+    _ = syn.tableQuery(f'select id from {rally_table_schema.id} limit 1')
+    LOGGER.debug("Updated rally project view.")
 
-    return rallyProject
+    return rally_project
 
 
-def createFolders(syn, root, folder_list):
+def create_folders(root, folder_list):
+    """Create hierarchy of Synapse folders.
+
+    Args:
+        root: Synapse ID of a container.
+        folder_list: list of folders in the same format as os.walk.
+    Returns:
+        A dictionary mapping the local folder to the created
+        Synapse folder ID.
+    """
+
+    syn = Synapse().client()
 
     dirlookup = {'.': root}
 
     for directory, subdirectories, _ in folder_list:
         folder = dirlookup.get(directory, None)
         if not folder:
-            folder = syn.store(synapseclient.Folder(directory, 
-                                                    parent=dirlookup[directory]))
+            folder = synapseclient.Folder(directory,
+                                          parent=dirlookup[directory])
+            folder = syn.store(folder)
         dirlookup[directory] = folder
         for subdir in subdirectories:
             curr = os.path.join(directory, subdir)
-            subfolder = dirlookup.get(curr, 
-                                      syn.store(synapseclient.Folder(subdir, 
+            # pylint: disable=line-too-long
+            subfolder = dirlookup.get(curr,
+                                      syn.store(synapseclient.Folder(subdir,
                                                                      parent=folder)))
             dirlookup[curr] = subfolder
 
     return dirlookup
 
 
-def createSprint(syn, rallyNumber, sprintLetter, sprintTitle=None, config=config.DEFAULT_CONFIG):
+def create_sprint(rally_number, sprint_letter, sprint_title=None,
+                  config=config.DEFAULT_CONFIG):
+    """Create a sprint project.
+
+    Args:
+        rally_number: Integer rally number.
+        sprint_letter: A single character letter for the sprint.
+        sprint_title: Optional sprint title used as the project name.
+        config: A dictionary with configuration options.
+    Returns:
+        A synapseclient.Project object.
+
+    """
+
+    syn = Synapse().client()
 
     # Sprint Configuration
-    sprintNumber = "%s%s" % (rallyNumber, sprintLetter)
-    if not sprintTitle:
-        sprintTitle = "Sprint %s" % (sprintNumber, )
-    
-    sprintName = "ki %s" % (sprintTitle, )
+    sprint_number = "%s%s" % (rally_number, sprint_letter)
+    if not sprint_title:
+        sprint_title = "Sprint %s" % (sprint_number, )
+
+    sprint_name = "ki %s" % (sprint_title, )
 
     consortium = config.get('consortium', None)
-    sprintStart = config.get('sprintStart', None)
-    sprintEnd = config.get('sprintEnd', None)
 
-    rallyAdminTeamId = config['rallyAdminTeamId']
-    wikiMasterTemplateId = config['wikiMasterTemplateId']
-    sprintTableId = config['sprintTableId']
+    rally_admin_team_id = config['rally_admin_team_id']
+    wiki_master_template_id = config['wiki_master_template_id']
+    sprint_table_id = config['sprint_table_id']
 
-    teamPermissionsDict = {rallyAdminTeamId: config['rallyAdminTeamPermissions']}
+    team_permissions = {rally_admin_team_id: config['rallyAdminTeamPermissions']} # pylint: disable=line-too-long
 
     # all files table in the Ki rally working group project
-    allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
+    all_files_working_group_schema = syn.get(config['allFilesSchemaId'])
 
-    rallyProject = createRally(syn, rallyNumber=rallyNumber, config=config)
+    rally_project = create_rally(rally_number=rally_number, config=config)
 
     # Get the rally team.
-    rallyTeam = syn.getTeam(rallyProject.annotations.get('rallyTeam', None)[0])
+    rally_team = syn.getTeam(rally_project.annotations.get('rallyTeam', None)[0]) # pylint: disable=line-too-long
 
     # Add the rally team with it's default permissions to
     # the list of permissions to add
-    teamPermissionsDict.update({rallyTeam.id: ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']})
+    team_permissions.update({rally_team.id: DEFAULT_PERMISSIONS})
 
-    sprintProject = getSprint(syn, config['rallyAdminProjectId'], 
-                              rallyNumber=rallyNumber, 
-                              sprintLetter=sprintLetter)
+    sprint_project = get_sprint(config['rally_admin_project_id'],
+                                rally_number=rally_number,
+                                sprint_letter=sprint_letter)
 
-    if not sprintProject:
+    if not sprint_project:
+        LOGGER.info(f"Creating a new sprint {sprint_number}{sprint_letter}")
         # Create the sprint project
-        sprintProject = synapseclient.Project(name=sprintName,
-                                              annotations=dict(sprintTitle=sprintTitle,
-                                                               sprintNumber=sprintNumber,
-                                                               sprintLetter=sprintLetter,
-                                                               rally=rallyNumber,
-                                                               rallyId=rallyProject.id,
-                                                               sprintStart=sprintStart,
-                                                               sprintEnd=sprintEnd,
-                                                               consortium=consortium,
-                                                               rallyTeam=rallyTeam.id))
+        annotations = dict(sprintTitle=sprint_title,
+                           sprintNumber=sprint_number,
+                           sprint_letter=sprint_letter,
+                           rally=rally_number,
+                           rallyId=rally_project.id,
+                           sprintStart=None,
+                           sprintEnd=None,
+                           consortium=consortium,
+                           rallyTeam=rally_team.id)
+
+        sprint_project = synapseclient.Project(name=sprint_name,
+                                               annotations=annotations)
 
 
         try:
-            sprintProject = syn.store(sprintProject, createOrUpdate=False)
+            sprint_project = syn.store(sprint_project, createOrUpdate=False)
+            LOGGER.info(f"Created sprint project {sprint_project.id}")
         except synapseclient.exceptions.SynapseHTTPError:
-            sprintProjectObj = syn.restPOST("/entity/child",
-                                            body=json.dumps({"entityName": sprintProject.name}))
-            sprintProject = syn.get(sprintProjectObj['id'])
-        
+            body = json.dumps({"entityName": sprint_project.name})
+            sprint_project_obj = syn.restPOST("/entity/child",
+                                              body=body)
+            sprint_project = syn.get(sprint_project_obj['id'])
+
         # Set permissions for the sprint project
-        for teamId, permissions in list(teamPermissionsDict.items()):
-            syn.setPermissions(sprintProject, principalId=teamId, accessType=permissions)
+        for team_id, permissions in list(team_permissions.items()):
+            syn.setPermissions(sprint_project, principalId=team_id,
+                               accessType=permissions)
 
         try:
-            sprintWiki = syn.getWiki(owner=sprintProject)
+            sprint_project = syn.get(sprint_project_obj['id'])
+            wiki = syn.getWiki(owner=sprint_project)
         except synapseclient.exceptions.SynapseHTTPError:
-            sprintWikiMasterTemplate = syn.get(wikiMasterTemplateId)
-            sprintWiki = syn.store(synapseclient.Wiki(owner=sprintProject,
-                                                      markdownFile=sprintWikiMasterTemplate.path))
-            sprintWiki.markdown = sprintWiki.markdown.replace('id=123', 'id=%s' % rallyTeam.id)
-            sprintWiki.markdown = sprintWiki.markdown.replace('teamId=123', 'teamId=%s' % rallyTeam.id)
-            sprintWiki = syn.store(sprintWiki)
+            wiki_template = syn.get(wiki_master_template_id)
+            wiki = synapseclient.Wiki(owner=sprint_project,
+                                      markdownFile=wiki_template.path) # pylint: disable=line-too-long
+            wiki = syn.store(wiki)
+            wiki.markdown = wiki.markdown.replace('id=123',
+                                                  f'id={rally_team.id}') # pylint: disable=line-too-long
+            wiki.markdown = wiki.markdown.replace('teamId=123',
+                                                  f'teamId={rally_team.id}') # pylint: disable=line-too-long
+            wiki = syn.store(wiki)
+
+        LOGGER.info("Set sprint project wiki.")
 
         # Create folders
-        _ = createFolders(syn, root=sprintProject, 
-                          folder_list=config['sprintFolders'])
+        _ = create_folders(root=sprint_project,
+                           folder_list=config['sprintFolders'])
+
+        LOGGER.info("Created sprint project folder structure.")
 
         # Create a daily checkin discussion post
-        forum = syn.restGET("/project/%(projectId)s/forum" % dict(projectId=sprintProject.id))
+        forum = syn.restGET(f"/project/{sprint_project.id}/forum")
 
-        for p in config['posts']:
-            p['forumId'] = forum.get('id', None)
+        for discussion_post in config['posts']:
+            discussion_post['forumId'] = forum.get('id', None)
             try:
-                post = syn.restPOST("/thread", body=json.dumps(p))
-            except Exception as e:
-                logger.error("Error with post: %s (%s)" % (post, e))
-    
-        # Add the sprint to the all sprints table in the ki working group project
-        rallyAdminSprintTable = syn.get(sprintTableId)
-        addToViewScope(rallyAdminSprintTable, sprintProject.id)
-        rallyAdminSprintTable = syn.store(rallyAdminSprintTable)
+                post = syn.restPOST("/thread",
+                                    body=json.dumps(discussion_post))
+            except Exception as exception:
+                LOGGER.error(f"Error with discussion post: {post} ({exception})") # pylint: disable=line-too-long
+        LOGGER.info("Created sprint project forum posts.")
 
-        # Add the files in the rally project to the working group all files view
-        allFilesWorkingGroupSchema = syn.get(config['allFilesSchemaId'])
-        addToViewScope(allFilesWorkingGroupSchema, rallyProject.id)
-        allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
+        # Add the sprint to the all sprints table in the
+        # ki working group project
+        rally_admin_sprint_table = syn.get(sprint_table_id)
+        add_to_view_scope(rally_admin_sprint_table, [sprint_project.id])
+        rally_admin_sprint_table = syn.store(rally_admin_sprint_table)
 
-        addToViewScope(allFilesWorkingGroupSchema, sprintProject.id)
-        allFilesWorkingGroupSchema = syn.store(allFilesWorkingGroupSchema)
+        # Add the files in the rally project to the
+        # working group all files view
+        all_files_working_group_schema = syn.get(config['allFilesSchemaId'])
+        add_to_view_scope(all_files_working_group_schema, [rally_project.id])
+        all_files_working_group_schema = syn.store(all_files_working_group_schema) # pylint: disable=line-too-long
+
+        add_to_view_scope(all_files_working_group_schema, [sprint_project.id])
+        all_files_working_group_schema = syn.store(all_files_working_group_schema) # pylint: disable=line-too-long
 
         # make sure all tables are triggered to be refreshed
-        _ = syn.tableQuery('select id from %(id)s limit 1' % dict(id=rallyAdminSprintTable.id))
-        _ = syn.tableQuery('select id from %(id)s limit 1' % dict(id=allFilesWorkingGroupSchema.id))
+        _ = syn.tableQuery(f'select id from {rally_admin_sprint_table.id} limit 1') # pylint: disable=line-too-long
+        _ = syn.tableQuery(f'select id from {all_files_working_group_schema.id} limit 1') # pylint: disable=line-too-long
 
-    return sprintProject
+        LOGGER.info("Registered sprint project in project and file views.")
+    return sprint_project

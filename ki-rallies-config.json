@@ -1,5 +1,5 @@
 {"consortium": "Bill and Melinda Gates Foundation",
- "rallyAdminProjectId": "syn11645282",
+ "rally_admin_project_id": "syn11645282",
  "wikiTaskTemplateId": "syn12286728",
  "wikiRallyTemplateId": "syn12286642",
  "allFilesSchemaId": "syn12180518",
@@ -18,9 +18,9 @@
  "posts": [{"title": "Daily Discussion",
             "messageMarkdown": "Use this post for a daily checkin."}
           ],
- "rallyAdminTeamId": "3367511",
+ "rally_admin_team_id": "3367511",
  "rallyTableId": "syn11645289",
- "sprintTableId": "syn11673548",
- "wikiMasterTemplateId": "syn12077749",
+ "sprint_table_id": "syn11673548",
+ "wiki_master_template_id": "syn12077749",
  "taskTableTemplateId": "syn17016474"
 }
