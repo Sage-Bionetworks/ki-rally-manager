@@ -38,7 +38,7 @@ def get_rallies(args):
     """
 
     LOGGER.info("Getting rallies.")
-    if not args.adminProjectId:
+    if not args.admin_project_id:
         config = json.load(open(args.config))
         admin_project_id = config.get("rally_admin_project_id", None)
     else:
