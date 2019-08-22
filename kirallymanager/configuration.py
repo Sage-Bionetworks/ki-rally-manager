@@ -4,7 +4,7 @@
 
 # pylint: disable=line-too-long
 DEFAULT_CONFIG = dict(consortium="Bill and Melinda Gates Foundation",
-                      rally_admin_project_id="syn11645282",
+                      root_project_id="syn11645282",
                       wikiTaskTemplateId="syn12286728",
                       wikiRallyTemplateId="syn12286642",
                       allFilesSchemaId="syn12180518",

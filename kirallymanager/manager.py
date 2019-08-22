@@ -21,11 +21,11 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
-def get_rally(rally_admin_project_id, rally_number):
+def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
     syn = Synapse().client()
-    rally_admin_project = syn.get(rally_admin_project_id)
-    table_id = rally_admin_project.annotations.rallyTableId[0]
+    root_project = syn.get(root_project_id)
+    table_id = root_project.annotations.rallyTableId[0]
     tbl = syn.tableQuery(f"select id from {table_id} where rally={rally_number}") # pylint: disable=line-too-long
     data_frame = tbl.asDataFrame()
 
@@ -40,11 +40,11 @@ def get_rally(rally_admin_project_id, rally_number):
     return syn.get(ids[0], downloadFile=False)
 
 
-def get_sprint(rally_admin_project_id, rally_number, sprint_letter):
+def get_sprint(root_project_id, rally_number, sprint_letter):
     """Get a sprint by number and letter."""
     syn = Synapse().client()
-    rally_admin_project = syn.get(rally_admin_project_id)
-    table_id = rally_admin_project.annotations.sprintTableId[0]
+    root_project = syn.get(root_project_id)
+    table_id = root_project.annotations.sprintTableId[0]
     tbl = syn.tableQuery(f"select id from {table_id} where sprintNumber='{rally_number}{sprint_letter}'") # pylint: disable=line-too-long
 
     data_frame = tbl.asDataFrame()
@@ -60,24 +60,24 @@ def get_sprint(rally_admin_project_id, rally_number, sprint_letter):
     return syn.get(ids[0], downloadFile=False)
 
 
-def get_rallies(rally_admin_project_id):
+def get_rallies(root_project_id):
     """Get list of rally projects."""
     syn = Synapse().client()
 
-    LOGGER.info("Getting rallies from %s" % (rally_admin_project_id,))
+    LOGGER.info("Getting rallies from %s" % (root_project_id,))
 
-    rally_admin_project = syn.get(rally_admin_project_id)
-    table_id = rally_admin_project.annotations.rallyTableId[0]
+    root_project = syn.get(root_project_id)
+    table_id = root_project.annotations.rallyTableId[0]
     tbl = syn.tableQuery("select * from %s" % (table_id, ))
 
     return tbl.asDataFrame()
 
 
-def get_sprints(rally_admin_project_id, rally_number=None):
+def get_sprints(root_project_id, rally_number=None):
     """Get list of sprint projects.
 
     Args:
-        rally_admin_project_id: Synapse Project ID with admin annotations,
+        root_project_id: Synapse Project ID with admin annotations,
                                 including the sprint table ID.
         rally_number: An integer rally number. If None, return sprints
                       from all rallies.
@@ -88,8 +88,8 @@ def get_sprints(rally_admin_project_id, rally_number=None):
     """
     syn = Synapse().client()
 
-    rally_admin_project = syn.get(rally_admin_project_id)
-    table_id = rally_admin_project.annotations.sprintTableId[0]
+    root_project = syn.get(root_project_id)
+    table_id = root_project.annotations.sprintTableId[0]
     tbl = syn.tableQuery("select * from %s" % (table_id, ))
     data_frame = tbl.asDataFrame()
 
@@ -247,7 +247,7 @@ def create_rally(rally_number, rally_title=None,
     """
     syn = Synapse().client()
 
-    rally_project = get_rally(config['rally_admin_project_id'],
+    rally_project = get_rally(config['root_project_id'],
                               rally_number=rally_number)
 
     if rally_project:
@@ -403,7 +403,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
     # the list of permissions to add
     team_permissions.update({rally_team.id: DEFAULT_PERMISSIONS})
 
-    sprint_project = get_sprint(config['rally_admin_project_id'],
+    sprint_project = get_sprint(config['root_project_id'],
                                 rally_number=rally_number,
                                 sprint_letter=sprint_letter)
 
