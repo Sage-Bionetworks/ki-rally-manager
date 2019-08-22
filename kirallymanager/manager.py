@@ -9,7 +9,7 @@ import sys
 
 import synapseclient
 
-from . import config
+from . import configuration
 from .synapse import Synapse
 
 logging.basicConfig()
@@ -233,7 +233,8 @@ def create_rally_team(team_name, default_members=None):
     return syn.getTeam(rally_team.id)
 
 
-def create_rally(rally_number, rally_title=None, config=config.DEFAULT_CONFIG):
+def create_rally(rally_number, rally_title=None,
+                 config=configuration.DEFAULT_CONFIG):
     """Create a rally project.
 
     Args:
@@ -360,7 +361,7 @@ def create_folders(root, folder_list):
 
 
 def create_sprint(rally_number, sprint_letter, sprint_title=None,
-                  config=config.DEFAULT_CONFIG):
+                  config=configuration.DEFAULT_CONFIG):
     """Create a sprint project.
 
     Args:
@@ -407,7 +408,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                                 sprint_letter=sprint_letter)
 
     if not sprint_project:
-        LOGGER.info(f"Creating a new sprint {sprint_number}{sprint_letter}")
+        LOGGER.info(f"Creating a new sprint {sprint_number}")
         # Create the sprint project
         annotations = dict(sprintTitle=sprint_title,
                            sprintNumber=sprint_number,
@@ -438,7 +439,6 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                                accessType=permissions)
 
         try:
-            sprint_project = syn.get(sprint_project_obj['id'])
             wiki = syn.getWiki(owner=sprint_project)
         except synapseclient.exceptions.SynapseHTTPError:
             wiki_template = syn.get(wiki_master_template_id)
