@@ -22,7 +22,7 @@ DEFAULT_CONFIG = dict(consortium="Bill and Melinda Gates Foundation",
                       posts=[{'title': 'Daily Discussion',
                               'messageMarkdown': 'Use this post for a daily checkin.'}],
                       rally_admin_team_id="3367511",
-                      rallyTableId="syn11645289",
+                      rally_table_id="syn11645289",
                       wiki_master_template_id="syn12077749",
                       taskTableTemplateId="syn17016474",
                       sprint_table_id="syn11673548")
