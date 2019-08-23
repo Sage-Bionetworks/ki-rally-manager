@@ -22,7 +22,6 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
 def get_depth_first_nodes(root):
-    LOGGER.info("Doing depth first traversal.")
     nodes = []
     stack = [root]
     while stack:
@@ -36,7 +35,15 @@ def get_depth_first_nodes(root):
     return nodes
 
 def depth_first_search(root, test_func=None):
-    LOGGER.info("Doing depth first search.")
+    """Depth first search on Synapse project structure.
+
+    Args:
+        root: A Synapse Project ID.
+        test_func: A function that returns true or false when passed a Synapse ID.
+    Returns:
+        Synapse ID if found, or None.
+
+    """
     nodes = []
     stack = [root]
     while stack:
@@ -52,7 +59,20 @@ def depth_first_search(root, test_func=None):
     return None
 
 def dfs_get_rally(root, rally):
+    """Get a rally from the tree structure using depth first search.
+
+    Args:
+        root: A Synapse Project ID.
+        rally: An integer of a rally number.
+    Returns:
+        If found, a Synapse project, or None.
+
+    """
     def test_func(child):
+        """Is the provided project for the specified rally.
+ 
+        """
+
         syn = Synapse().client()
         proj = syn.get(child)
         try:
@@ -65,7 +85,21 @@ def dfs_get_rally(root, rally):
     return depth_first_search(root, test_func=test_func)
 
 def dfs_get_sprint(root, sprint):
+    """Get a sprint from the tree structure using depth first search.
+
+    Args:
+        root: A Synapse Project ID.
+        rally: A string of a rally number (like "9A").
+    Returns:
+        If found, a Synapse project, or None.
+
+    """
+
     def test_func(child):
+        """Test function to see if the project is for the specified sprint.
+        
+        """
+
         syn = Synapse().client()
         proj = syn.get(child)
         try:
@@ -78,6 +112,19 @@ def dfs_get_sprint(root, sprint):
     return depth_first_search(root, test_func=test_func)
 
 def get_children(root_project_id):
+    """Get the child projects of a root project.
+    
+    This requires the project to have:
+        1. A Project view that has in it's scope the child projects, and
+        2. An annotation called 'children' that points to the Project view.
+    
+    Args:
+        root_project_id: A Synapse Project ID.
+    Returns:
+        A list of Synapse Project IDs that are children of the given project.
+
+    """
+
     syn = Synapse().client()
     root_project = syn.get(root_project_id)
     try:
