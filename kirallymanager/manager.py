@@ -21,6 +21,82 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
+def get_depth_first_nodes(root):
+    LOGGER.info("Doing depth first traversal.")
+    nodes = []
+    stack = [root]
+    while stack:
+        cur_node = stack[0]
+        LOGGER.info("Curr node: %s", cur_node)        
+        stack = stack[1:]
+        nodes.append(cur_node)
+        children = get_children(cur_node)
+        for child in reversed(children):
+            stack.insert(0, child)
+    return nodes
+
+def depth_first_search(root, test_func=None):
+    LOGGER.info("Doing depth first search.")
+    nodes = []
+    stack = [root]
+    while stack:
+        cur_node = stack[0]
+        LOGGER.info("Curr node: %s", cur_node)        
+        stack = stack[1:]
+        nodes.append(cur_node)
+        children = get_children(cur_node)
+        for child in reversed(children):
+            if test_func and test_func(child):
+                return child
+            stack.insert(0, child)
+    return None
+
+def dfs_get_rally(root, rally):
+    def test_func(child):
+        syn = Synapse().client()
+        proj = syn.get(child)
+        try:
+            rally_number = proj.rally
+        except AttributeError:
+            return False
+
+        return rally_number == [rally]
+
+    return depth_first_search(root, test_func=test_func)
+
+def dfs_get_sprint(root, sprint):
+    def test_func(child):
+        syn = Synapse().client()
+        proj = syn.get(child)
+        try:
+            sprint_number = proj.sprintNumber
+        except AttributeError:
+            return False
+
+        return sprint_number == [sprint]
+
+    return depth_first_search(root, test_func=test_func)
+
+def get_children(root_project_id):
+    syn = Synapse().client()
+    root_project = syn.get(root_project_id)
+    try:
+        table_id = root_project.annotations.children[0]
+    except AttributeError:
+        LOGGER.debug("No children found.")
+        return []
+
+    tbl = syn.tableQuery(f"select id from {table_id}")
+    data_frame = tbl.asDataFrame()
+
+    ids = data_frame.id.tolist()
+
+    if not ids:
+        LOGGER.debug("No children found.")
+        return []
+
+    return ids
+
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
     syn = Synapse().client()
@@ -262,7 +338,7 @@ def create_rally(rally_number, rally_title=None,
     rally_team_name = "ki Rally %s" % (rally_number, )
 
     rally_admin_team_id = config['rally_admin_team_id']
-    rally_table_id = config['rallyTableId']
+    rally_table_id = config['rally_table_id']
     team_permissions = {rally_admin_team_id: config['rallyAdminTeamPermissions']} # pylint: disable=line-too-long
 
     # Create a rally team.
