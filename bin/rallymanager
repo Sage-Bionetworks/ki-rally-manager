@@ -38,26 +38,26 @@ def get_rallies(args):
     """
 
     LOGGER.info("Getting rallies.")
-    if not args.admin_project_id:
+    if not args.root_project_id:
         config = json.load(open(args.config))
-        admin_project_id = config.get("rally_admin_project_id", None)
+        root_project_id = config.get("root_project_id", None)
     else:
-        admin_project_id = args.admin_project_id
+        root_project_id = args.root_project_id
 
-    data_frame = manager.get_rallies(rally_admin_project_id=admin_project_id)
+    data_frame = manager.get_rallies(root_project_id=root_project_id)
     data_frame.to_csv(sys.stdout)
 
 def get_sprints(args):
     """Get sprints.
     """
 
-    if not args.admin_project_id:
+    if not args.root_project_id:
         config = json.load(open(args.config))
-        admin_project_id = config.get("rally_admin_project_id", None)
+        root_project_id = config.get("root_project_id", None)
     else:
-        admin_project_id = args.admin_project_id
+        root_project_id = args.root_project_id
 
-    data_frame = manager.get_sprints(rally_admin_project_id=admin_project_id,
+    data_frame = manager.get_sprints(root_project_id=root_project_id,
                                      rally_number=args.rally_number)
 
     data_frame.to_csv(sys.stdout)
@@ -71,7 +71,7 @@ def main():
 
     parser.add_argument('--config', type=str, default=None,
                         help="Path to KI rallies configuration file")
-    parser.add_argument('--admin_project_id', type=str, default=None,
+    parser.add_argument('--root_project_id', type=str, default=None,
                         help="Synapse ID of the root project for administration") # pylint: disable=line-too-long
     parser.add_argument('--synapse_config', type=str,
                         default=synapseclient.client.CONFIG_FILE,

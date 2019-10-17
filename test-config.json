@@ -1,0 +1,24 @@
+{"consortium": "TEST Sage Bionetworks",
+ "root_project_id": "syn20336132",
+ "wikiRallyTemplateId": "syn12286642",
+ "allFilesSchemaId": "syn20336143",
+ "defaultRallyTeamMembers": [],
+ "rallyAdminTeamPermissions": ["DOWNLOAD", "CHANGE_PERMISSIONS",
+                               "CHANGE_SETTINGS", "MODERATE", "READ",
+                               "UPDATE", "DELETE", "CREATE"],
+ "sprintFolders": [
+   [".",
+    ["Timeline", "Results", "Research Questions", "Report Out",
+     "Planning", "Data"],
+    []],
+    ["./Data", ["Auxiliary", "Documentation"], []]
+  ],
+
+ "posts": [{"title": "Daily Discussion",
+            "messageMarkdown": "Use this post for a daily checkin."}
+          ],
+ "rally_admin_team_id": "3394026",
+ "rally_table_id": "syn20336167",
+ "sprint_table_id": "syn20336181",
+ "wiki_master_template_id": "syn12077749"
+}
