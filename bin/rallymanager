@@ -31,6 +31,7 @@ def create_rally(args):
 
     config = json.load(open(args.config))
     manager.create_rally(rally_number=args.rally_number,
+                         rally_title=args.title,
                          config=config)
 
 def get_rallies(args):
