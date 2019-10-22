@@ -4,6 +4,7 @@
  "wikiRallyTemplateId": "syn12286642",
  "allFilesSchemaId": "syn12180518",
  "defaultRallyTeamMembers": [3372480],
+ "defaultPowerUserTeamMembers": [3372480],
  "rallyAdminTeamPermissions": ["DOWNLOAD", "CHANGE_PERMISSIONS",
                                "CHANGE_SETTINGS", "MODERATE", "READ",
                                "UPDATE", "DELETE", "CREATE"],
