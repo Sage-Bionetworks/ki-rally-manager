@@ -421,7 +421,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                            consortium=consortium,
                            rallyTeam=rally_team.id)
 
-        sprint_project = synapseclient.Project(name=sprint_name,
+        sprint_project = synapseclient.Project(name=sprint_title,
                                                annotations=annotations)
 
 
