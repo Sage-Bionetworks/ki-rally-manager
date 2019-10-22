@@ -21,6 +21,129 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
+def get_depth_first_nodes(root):
+    nodes = []
+    stack = [root]
+    while stack:
+        cur_node = stack[0]
+        LOGGER.info("Curr node: %s", cur_node)        
+        stack = stack[1:]
+        nodes.append(cur_node)
+        children = get_children(cur_node)
+        for child in reversed(children):
+            stack.insert(0, child)
+    return nodes
+
+def depth_first_search(root, test_func=None):
+    """Depth first search on Synapse project structure.
+
+    Args:
+        root: A Synapse Project ID.
+        test_func: A function that returns true or false when passed a Synapse ID.
+    Returns:
+        Synapse ID if found, or None.
+
+    """
+    nodes = []
+    stack = [root]
+    while stack:
+        cur_node = stack[0]
+        LOGGER.info("Curr node: %s", cur_node)        
+        stack = stack[1:]
+        nodes.append(cur_node)
+        children = get_children(cur_node)
+        for child in reversed(children):
+            if test_func and test_func(child):
+                return child
+            stack.insert(0, child)
+    return None
+
+def dfs_get_rally(root, rally):
+    """Get a rally from the tree structure using depth first search.
+
+    Args:
+        root: A Synapse Project ID.
+        rally: An integer of a rally number.
+    Returns:
+        If found, a Synapse project, or None.
+
+    """
+    def test_func(child):
+        """Is the provided project for the specified rally.
+ 
+        """
+
+        syn = Synapse().client()
+        proj = syn.get(child)
+        try:
+            rally_number = proj.rally
+        except AttributeError:
+            return False
+
+        return rally_number == [rally]
+
+    return depth_first_search(root, test_func=test_func)
+
+def dfs_get_sprint(root, sprint):
+    """Get a sprint from the tree structure using depth first search.
+
+    Args:
+        root: A Synapse Project ID.
+        rally: A string of a rally number (like "9A").
+    Returns:
+        If found, a Synapse project, or None.
+
+    """
+
+    def test_func(child):
+        """Test function to see if the project is for the specified sprint.
+        
+        """
+
+        syn = Synapse().client()
+        proj = syn.get(child)
+        try:
+            sprint_number = proj.sprintNumber
+        except AttributeError:
+            return False
+
+        return sprint_number == [sprint]
+
+    return depth_first_search(root, test_func=test_func)
+
+def get_children(root_project_id):
+    """Get the child projects of a root project.
+    
+    This requires the project to have:
+        1. A Project view that has in it's scope the child projects, and
+        2. An annotation called 'children' that points to the Project view.
+    
+    Args:
+        root_project_id: A Synapse Project ID.
+    Returns:
+        A list of Synapse Project IDs that are children of the given project.
+
+    """
+
+    syn = Synapse().client()
+    root_project = syn.get(root_project_id)
+    try:
+        table_id = root_project.annotations.children[0]
+    except AttributeError:
+        LOGGER.debug("No children found.")
+        return []
+
+    tbl = syn.tableQuery(f"select id from {table_id}")
+    data_frame = tbl.asDataFrame()
+
+    ids = data_frame.id.tolist()
+
+    if not ids:
+        LOGGER.debug("No children found.")
+        return []
+
+    return ids
+
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
     syn = Synapse().client()
