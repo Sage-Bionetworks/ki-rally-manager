@@ -262,7 +262,7 @@ def create_rally(rally_number, rally_title=None,
     rally_team_name = "ki Rally %s" % (rally_number, )
 
     rally_admin_team_id = config['rally_admin_team_id']
-    rally_table_id = config['rallyTableId']
+    rally_table_id = config['rally_table_id']
     team_permissions = {rally_admin_team_id: config['rallyAdminTeamPermissions']} # pylint: disable=line-too-long
 
     # Create a rally team.
