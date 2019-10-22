@@ -392,8 +392,11 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
     # all files table in the Ki rally working group project
     all_files_working_group_schema = syn.get(config['allFilesSchemaId'])
 
-    rally_project = create_rally(rally_number=rally_number, config=config)
+    rally_project = get_rally(config['root_project_id'],
+                              rally_number=rally_number)
 
+    if rally_project is None:
+        raise ValueError(f"No rally {rally_number}. Please create it first.")
     # Get the rally team.
     rally_team = syn.getTeam(rally_project.annotations.get('rallyTeam', None)[0]) # pylint: disable=line-too-long
 
