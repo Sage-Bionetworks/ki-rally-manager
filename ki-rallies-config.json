@@ -3,7 +3,7 @@
  "wikiTaskTemplateId": "syn12286728",
  "wikiRallyTemplateId": "syn12286642",
  "allFilesSchemaId": "syn12180518",
- "defaultRallyTeamMembers": [3372480, 3372480, 3367559, 3384644],
+ "defaultRallyTeamMembers": [3372480],
  "rallyAdminTeamPermissions": ["DOWNLOAD", "CHANGE_PERMISSIONS",
                                "CHANGE_SETTINGS", "MODERATE", "READ",
                                "UPDATE", "DELETE", "CREATE"],
