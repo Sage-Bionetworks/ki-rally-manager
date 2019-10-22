@@ -379,9 +379,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
     # Sprint Configuration
     sprint_number = "%s%s" % (rally_number, sprint_letter)
     if not sprint_title:
-        sprint_title = "Sprint %s" % (sprint_number, )
-
-    sprint_name = "ki %s" % (sprint_title, )
+        sprint_title = "ki Sprint %s" % (sprint_number, )
 
     consortium = config.get('consortium', None)
 
