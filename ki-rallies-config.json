@@ -1,6 +1,5 @@
 {"consortium": "Bill and Melinda Gates Foundation",
  "root_project_id": "syn11645282",
- "wikiTaskTemplateId": "syn12286728",
  "wikiRallyTemplateId": "syn12286642",
  "allFilesSchemaId": "syn12180518",
  "defaultRallyTeamMembers": [3372480],
@@ -23,5 +22,4 @@
  "rally_table_id": "syn11645289",
  "sprint_table_id": "syn11673548",
  "wiki_master_template_id": "syn12077749",
- "taskTableTemplateId": "syn17016474"
 }
