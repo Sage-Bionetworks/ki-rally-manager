@@ -12,7 +12,6 @@ import synapseclient
 from . import configuration
 from .synapse import Synapse
 
-logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
@@ -20,6 +19,8 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
                        'TEAM_MEMBERSHIP_UPDATE', 'DELETE']
 
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
+
+POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE']
 
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
@@ -211,8 +212,8 @@ def invite_to_team(team_id, individual_id, manager=False):
     return invite
 
 
-def create_rally_team(team_name, default_members=None):
-    """Create a rally team.
+def create_team_and_invite(team_name, default_members=None):
+    """Create a rally team and invite default members.
 
     This should be idempotent, but isn't, hence the special function here.
     Should remove this once fixed:
@@ -260,18 +261,30 @@ def create_rally(rally_number, rally_title=None,
         rally_title = "ki Rally %s" % (rally_number, )
 
     rally_team_name = "ki Rally %s" % (rally_number, )
+    rally_power_users_team_name = f"{rally_team_name} Power Users"
 
     rally_admin_team_id = config['rally_admin_team_id']
     rally_table_id = config['rally_table_id']
     team_permissions = {rally_admin_team_id: config['rallyAdminTeamPermissions']} # pylint: disable=line-too-long
 
     # Create a rally team.
-    rally_team = create_rally_team(team_name=rally_team_name,
-                                   default_members=config['defaultRallyTeamMembers']) # pylint: disable=line-too-long
+    rally_team = create_team_and_invite(
+        team_name=rally_team_name,
+        default_members=config['defaultRallyTeamMembers'])
 
     # Add the rally team with it's default permissions to
-    # the list of permissions to add
+    # the list of permissions to add to the rally project ACL
     team_permissions.update({rally_team.id: DEFAULT_PERMISSIONS})
+
+    # Create a power users team.
+    rally_power_users_team = create_team_and_invite(
+        team_name=rally_power_users_team_name,
+        default_members=config['defaultPowerUserTeamMembers'])
+
+    # Add the power users team with it's permissions to
+    # the list of permissions to add to the rally project ACL
+    team_permissions.update(
+        {rally_power_users_team.id: POWER_USER_PERMISSIONS})
 
     # Create the Rally Project
     annotations = dict(rally=rally_number,
@@ -397,12 +410,12 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
 
     if rally_project is None:
         raise ValueError(f"No rally {rally_number}. Please create it first.")
-    # Get the rally team.
-    rally_team = syn.getTeam(rally_project.annotations.get('rallyTeam', None)[0]) # pylint: disable=line-too-long
 
-    # Add the rally team with it's default permissions to
-    # the list of permissions to add
-    team_permissions.update({rally_team.id: DEFAULT_PERMISSIONS})
+    # Get the rally team.
+    rally_team = syn.getTeam(
+        rally_project.annotations.get('rallyTeam', None)[0])
+
+    rally_project_acl = syn._getACL(rally_project)
 
     sprint_project = get_sprint(config['root_project_id'],
                                 rally_number=rally_number,
@@ -435,9 +448,8 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
             sprint_project = syn.get(sprint_project_obj['id'])
 
         # Set permissions for the sprint project
-        for team_id, permissions in list(team_permissions.items()):
-            syn.setPermissions(sprint_project, principalId=team_id,
-                               accessType=permissions)
+        for resource_access in rally_project_acl['resourceAccess']:
+            syn.setPermissions(sprint_project, **resource_access)
 
         try:
             wiki = syn.getWiki(owner=sprint_project)
