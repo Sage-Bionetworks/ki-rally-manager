@@ -1,4 +1,5 @@
-[![Docker Automated build](https://img.shields.io/docker/automated/jrottenberg/ffmpeg.svg?style=flat-square)](https://hub.docker.com/r/sagebionetworks/ki-rally-manager/)
+[![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/sagebionetworks/ki-rally-manager)](https://hub.docker.com/r/sagebionetworks/ki-rally-manager/)
+
 
 # ki Rally Manager
 
