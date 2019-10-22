@@ -18,9 +18,8 @@ import synapseclient
 
 from .param_store import ParamStore
 
-logging.basicConfig()
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.INFO)
 
 class Synapse:
 
