@@ -12,7 +12,15 @@ pip install git+https://github.com/Sage-Bionetworks/ki-rally-manager.git
 ```
 # Usage
 
-Requires a configuration file in `json` format that contains information where things will be set up. An example is at [`ki-rallies-config.json`](ki-rallies-config.json).
+Use requires a configuration file in `json` format that contains information where things will be set up. An example is at [`test-config.json`](test-config.json).
+
+For ki rallies, use the [`ki-rallies-config.json`](ki-rallies-config.json). Appropriate permissions in Synapse are required to use this configuration.
+
+The manager is generally used via the provided command line interface. To get help and see the available features:
+
+```
+rallymanager -h
+```
 
 ## Create a sprint (and a rally)
 
