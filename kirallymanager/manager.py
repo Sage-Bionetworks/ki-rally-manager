@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+from six import string_types
 
 import synapseclient
 
@@ -20,6 +21,47 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
                        'TEAM_MEMBERSHIP_UPDATE', 'DELETE']
 
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
+
+def quote_sql_string(value):
+    '''
+    If `value` is a string type, escapes single quotes in the string
+    and returns the string enclosed in single quotes.
+    '''
+    if isinstance(value, bool):
+        raise ValueError("Cannot convert boolean.")
+
+    if isinstance(value, string_types):
+        new_value = str(value)
+        new_value = new_value.replace("'", "''")
+        return "'{}'".format(new_value)
+    return value
+
+def dict_to_sql_string(obj):
+    sql_strings = []
+    for key, value in obj.items():
+        if not isinstance(value, (str, int, float)):
+            pass
+        sql_strings.append("{key}={value}".format(key=key, value=quote_sql_string(value)))
+    return " AND ".join(sql_strings)
+
+
+def get_project_from_view(table_id, annotations):
+    syn = Synapse().client()
+
+    sql_string = dict_to_sql_string(annotations)
+    tbl = syn.tableQuery(f"select id from {table_id} where {sql_string}")
+    data_frame = tbl.asDataFrame()
+
+    ids = data_frame.id.tolist()
+
+    if not ids:
+        LOGGER.debug("No project found.")
+        return None
+    if len(ids) > 1:
+        raise ValueError("Found more than one matching project.")
+
+    return syn.get(ids[0], downloadFile=False)
+
 
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
@@ -233,13 +275,13 @@ def create_rally_team(team_name, default_members=None):
     return syn.getTeam(rally_team.id)
 
 
-def create_rally(rally_number, rally_title=None,
-                 config=configuration.DEFAULT_CONFIG):
-    """Create a rally project.
+def create_project(title=None,
+                          config=configuration.DEFAULT_CONFIG,
+                          annotations=None):
+    """Create a parent project.
 
     Args:
-        rally_number: Integer rally number.
-        rally_title: Optional rally title used as the project name.
+        title: Optional rally title used as the project name.
         config: A dictionary with configuration options.
     Returns:
         A synapseclient.Project object.
