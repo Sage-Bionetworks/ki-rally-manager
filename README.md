@@ -24,11 +24,19 @@ rallymanager -h
 
 ## Create a sprint (and a rally)
 
-This creates a rally project, a rally team, and a sprint project. It adds them to the administrative project for listing.
+This creates a rally project, rally team(s), and adds the rally project to the rally project index.
+
+```
+rallymanager -c CONFIG.json create-rally rally_number
+```
+
+Create a sprint project with folder hierarchy, add wiki content, and post discussion forum posts.
 
 ```
 rallymanager -c CONFIG.json create-sprint rally_number sprint_letter
 ```
+
+See `rallymanager create-rally -h` and `rallymanager create-sprint -h` for more parameters.
 
 ## Get a list of rallies
 
