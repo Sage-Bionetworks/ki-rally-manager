@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='kirallymanager',
-      version='0.8',
+      version='0.9',
       description='Management client for Gates Foundation ki rallies and sprints',
       long_description='Management client for Gates Foundation ki rallies and sprints',
       url='http://github.com/Sage-Bionetworks/ki-rally-manager',
@@ -17,7 +17,8 @@ setup(name='kirallymanager',
       packages=['kirallymanager'],
       install_requires=[
           'pandas',
-          'synapseclient'
+          'synapseclient',
+          'boto3'
       ],
       scripts=['bin/rallymanager'],
       zip_safe=False)
