@@ -12,7 +12,7 @@
     ["Timeline", "Results", "Research Questions", "Report Out",
      "Planning", "Data"],
     []],
-    ["./Data", ["Auxiliary", "Documentation"], []]
+    ["./Data", ["Documentation"], []]
   ],
 
  "posts": [{"title": "Daily Discussion",
