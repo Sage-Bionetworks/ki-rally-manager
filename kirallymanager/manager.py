@@ -192,6 +192,7 @@ def invite_to_team(team_id, individual_id, manager=False):
     syn = Synapse().client()
 
     membership_status = syn.restGET(f"/team/{team_id}/member/{individual_id}/membershipStatus") # pylint: disable=line-too-long
+    invite = None
 
     if not membership_status['isMember']:
         invite = {'teamId': str(team_id), 'inviteeId': individual_id}
