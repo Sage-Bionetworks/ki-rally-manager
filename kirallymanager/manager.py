@@ -22,6 +22,9 @@ DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
 POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE']
 
+def do_something():
+    print("hi")
+
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
     syn = Synapse().client()
