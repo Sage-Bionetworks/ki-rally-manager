@@ -9,7 +9,7 @@
                                "UPDATE", "DELETE", "CREATE"],
  "sprintFolders": [
    [".",
-    ["Timeline", "Results", "Research Questions", "Report Out",
+    ["Timeline", "Results", "Report Out",
      "Planning", "Data"],
     []],
     ["./Data", ["Documentation"], []]
