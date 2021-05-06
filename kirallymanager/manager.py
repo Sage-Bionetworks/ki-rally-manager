@@ -20,7 +20,7 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
-POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE']
+POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
@@ -362,7 +362,6 @@ def create_folders(root, folder_list):
         A dictionary mapping the local folder to the created
         Synapse folder ID.
     """
-
     syn = Synapse().client()
 
     dirlookup = {'.': root}

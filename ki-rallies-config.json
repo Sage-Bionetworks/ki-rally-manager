@@ -15,7 +15,6 @@
     []],
     ["./Data Outputs", ["Documentation"], []]
   ],
-
  "posts": [{"title": "Daily Discussion",
             "messageMarkdown": "Use this post for a daily checkin."}
           ],
