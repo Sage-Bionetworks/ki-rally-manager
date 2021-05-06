@@ -263,6 +263,7 @@ def create_rally(rally_number, rally_title=None,
 
     rally_team_name = "ki Rally %s" % (rally_number, )
     rally_power_users_team_name = f"{rally_team_name} Power Users"
+    rally_data_users_team_name = f"{rally_team_name} Data Users"
 
     rally_admin_team_id = config['rally_admin_team_id']
     rally_table_id = config['rally_table_id']
@@ -286,6 +287,16 @@ def create_rally(rally_number, rally_title=None,
     # the list of permissions to add to the rally project ACL
     team_permissions.update(
         {rally_power_users_team.id: POWER_USER_PERMISSIONS})
+
+    # Create the data team
+    rally_data_users_team = create_team_and_invite(
+            team_name=rally_data_users_team_name,
+            default_members=config["defaultRallyDataTeamMembers"])
+
+    # Add the rally data team with it's permissions to
+    # the list of permissions to add to the rally project ACL
+    team_permissions.update(
+        {rally_data_users_team.id: DEFAULT_PERMISSIONS})
 
     # Create the Rally Project
     annotations = dict(rally=rally_number,
