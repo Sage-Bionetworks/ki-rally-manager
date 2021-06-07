@@ -22,6 +22,8 @@ DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
 POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
+SPRINT_TEAM_PERMISSIONS = ["DOWNLOAD", "READ", "UPDATE", "CREATE"]
+
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
     syn = Synapse().client()
@@ -457,6 +459,16 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
             sprint_project_obj = syn.restPOST("/entity/child",
                                               body=body)
             sprint_project = syn.get(sprint_project_obj['id'])
+
+        # Create sprint team, invite members, and set permissions
+        sprint_prefix = f"ki Sprint {sprint_number}"
+        sprint_team = create_team_and_invite(
+                team_name = sprint_prefix,
+                default_members=config["defaultRallyTeamMembers"])
+        syn.setPermissions(
+                sprint_project,
+                principalId=sprint_team.id,
+                accessType=SPRINT_TEAM_PERMISSIONS)
 
         # Set permissions for the sprint project
         for resource_access in rally_project_acl['resourceAccess']:
