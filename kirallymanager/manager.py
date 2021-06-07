@@ -499,6 +499,9 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
         forum = syn.restGET(f"/project/{sprint_project.id}/forum")
 
         for discussion_post in config['posts']:
+            discussion_post["messageMarkdown"] = (
+                    f"{discussion_post['messageMarkdown']} ",
+                    f"Don't forget to tag `@{sprint_team.name}` in your posts!")
             discussion_post['forumId'] = forum.get('id', None)
             try:
                 post = syn.restPOST("/thread",
