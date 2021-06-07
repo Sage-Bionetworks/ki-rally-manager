@@ -463,7 +463,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
         # Create sprint team, invite members, and set permissions
         sprint_prefix = f"ki Sprint {sprint_number}"
         sprint_team = create_team_and_invite(
-                team_name = sprint_prefix,
+                team_name=sprint_prefix,
                 default_members=config["defaultRallyTeamMembers"])
         syn.setPermissions(
                 sprint_project,
