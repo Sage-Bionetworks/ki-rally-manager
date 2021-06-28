@@ -485,6 +485,10 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                                                   f'id={rally_team.id}') # pylint: disable=line-too-long
             wiki.markdown = wiki.markdown.replace('teamId=123',
                                                   f'teamId={rally_team.id}') # pylint: disable=line-too-long
+            wiki.markdown = wiki.markdown.replace('id=456',
+                                                  f'id={sprint_team.id}') # pylint: disable=line-too-long
+            wiki.markdown = wiki.markdown.replace('teamId=456',
+                                                  f'teamId={sprint_team.id}') # pylint: disable=line-too-long
             wiki = syn.store(wiki)
 
         LOGGER.info("Set sprint project wiki.")
