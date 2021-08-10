@@ -481,10 +481,18 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
             wiki = synapseclient.Wiki(owner=sprint_project,
                                       markdownFile=wiki_template.path) # pylint: disable=line-too-long
             wiki = syn.store(wiki)
-            wiki.markdown = wiki.markdown.replace('id=123',
-                                                  f'id={rally_team.id}') # pylint: disable=line-too-long
-            wiki.markdown = wiki.markdown.replace('teamId=123',
-                                                  f'teamId={rally_team.id}') # pylint: disable=line-too-long
+            wiki.markdown = wiki.markdown.replace(
+                    'id=123',
+                    f'id={rally_team.id}')
+            wiki.markdown = wiki.markdown.replace(
+                    'teamId=123',
+                    f'teamId={rally_team.id}')
+            wiki.markdown = wiki.markdown.replace(
+                    'id=456',
+                    f'id={sprint_team.id}')
+            wiki.markdown = wiki.markdown.replace(
+                    'teamId=456',
+                    f'teamId={sprint_team.id}')
             wiki = syn.store(wiki)
 
         LOGGER.info("Set sprint project wiki.")
@@ -502,7 +510,8 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
             discussion_post["messageMarkdown"] = (
                     f"{discussion_post['messageMarkdown']} "
                     f"\n\n"
-                    f"Don't forget to tag `@{sprint_team.name}` in your posts!")
+                    f"Don't forget to tag `@{sprint_team.name}` "
+                    f"in your posts!")
             discussion_post['forumId'] = forum.get('id', None)
             try:
                 post = syn.restPOST("/thread",
