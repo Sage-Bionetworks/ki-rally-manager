@@ -3,8 +3,11 @@
  "wikiRallyTemplateId": "syn12286642",
  "allFilesSchemaId": "syn12180518",
  "defaultRallyTeamMembers": [3372480, 3419923],
+ "defaultRallyTeamMembersDescription": "Mary White and Jacqueline Exline",
  "defaultPowerUserTeamMembers": [3372480, 3419923],
- "defaultRallyDataTeamMembers": [3372480, 3419923, 3341174, 3378845],
+ "defaultPowerUserTeamMembersDescription": "Mary White and Jacqueline Exline",
+ "defaultDataTeamMembers": [3372480, 3419923, 3341174, 3378845],
+ "defaultDataTeamMembersDescription": "Mary White, Jacqueline Exline, Vishak Subramoney, and Brit Briggs",
  "rallyAdminTeamPermissions": ["DOWNLOAD", "CHANGE_PERMISSIONS",
                                "CHANGE_SETTINGS", "MODERATE", "READ",
                                "UPDATE", "DELETE", "CREATE"],
@@ -12,8 +15,7 @@
    [".",
     ["Timeline", "Results", "Report Out",
      "Planning", "Data Outputs"],
-    []],
-    ["./Data Outputs", ["Documentation"], []]
+    []]
   ],
  "posts": [{"title": "Daily Discussion",
             "messageMarkdown": "Use this post for a daily checkin."}

@@ -20,9 +20,8 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
-POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
+POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE']
 
-SPRINT_TEAM_PERMISSIONS = ["DOWNLOAD", "READ", "UPDATE", "CREATE"]
 
 def get_rally(root_project_id, rally_number):
     """Get a rally by number."""
@@ -290,16 +289,6 @@ def create_rally(rally_number, rally_title=None,
     team_permissions.update(
         {rally_power_users_team.id: POWER_USER_PERMISSIONS})
 
-    # Create the data team
-    rally_data_users_team = create_team_and_invite(
-            team_name=rally_data_users_team_name,
-            default_members=config["defaultRallyDataTeamMembers"])
-
-    # Add the rally data team with it's permissions to
-    # the list of permissions to add to the rally project ACL
-    team_permissions.update(
-        {rally_data_users_team.id: DEFAULT_PERMISSIONS})
-
     # Create the Rally Project
     annotations = dict(rally=rally_number,
                        consortium=consortium,
@@ -409,11 +398,8 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
 
     consortium = config.get('consortium', None)
 
-    rally_admin_team_id = config['rally_admin_team_id']
     wiki_master_template_id = config['wiki_master_template_id']
     sprint_table_id = config['sprint_table_id']
-
-    team_permissions = {rally_admin_team_id: config['rallyAdminTeamPermissions']} # pylint: disable=line-too-long
 
     # all files table in the Ki rally working group project
     all_files_working_group_schema = syn.get(config['allFilesSchemaId'])
@@ -460,19 +446,37 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                                               body=body)
             sprint_project = syn.get(sprint_project_obj['id'])
 
-        # Create sprint team, invite members, and set permissions
         sprint_prefix = f"ki Sprint {sprint_number}"
+        # Create sprint team, invite members, and set permissions
         sprint_team = create_team_and_invite(
                 team_name=sprint_prefix,
                 default_members=config["defaultRallyTeamMembers"])
         syn.setPermissions(
                 sprint_project,
                 principalId=sprint_team.id,
-                accessType=SPRINT_TEAM_PERMISSIONS)
+                accessType=DEFAULT_PERMISSIONS)
+        # Create sprint power users team, invite members, and set permissions
+        sprint_power_users_team = create_team_and_invite(
+                team_name=f"{sprint_prefix} Power Users",
+                default_members=config["defaultPowerUserTeamMembers"])
+        syn.setPermissions(
+                sprint_project,
+                principalId=sprint_power_users_team.id,
+                accessType=POWER_USER_PERMISSIONS)
+        # Create sprint data users team, invite members, and set permissions
+        sprint_data_users_team = create_team_and_invite(
+                team_name=f"{sprint_prefix} Data Users",
+                default_members=config["defaultDataTeamMembers"])
+        syn.setPermissions(
+                sprint_project,
+                principalId=sprint_data_users_team.id,
+                accessType=DEFAULT_PERMISSIONS)
 
-        # Set permissions for the sprint project
-        for resource_access in rally_project_acl['resourceAccess']:
-            syn.setPermissions(sprint_project, **resource_access)
+        # Grant admin team permissions for the sprint project
+        syn.setPermissions(
+                sprint_project,
+                adminTeamId=config["rally_admin_team_id"],
+                accessType=config["rallyAdminTeamPermissions"])
 
         try:
             wiki = syn.getWiki(owner=sprint_project)
