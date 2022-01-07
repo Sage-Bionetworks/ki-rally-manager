@@ -21,6 +21,8 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
 POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE']
+DATA_USER_PERMISSIONS = ['DOWNLOAD', 'READ']
+
 
 
 def get_rally(root_project_id, rally_number):
@@ -264,7 +266,6 @@ def create_rally(rally_number, rally_title=None,
 
     rally_team_name = "ki Rally %s" % (rally_number, )
     rally_power_users_team_name = f"{rally_team_name} Power Users"
-    rally_data_users_team_name = f"{rally_team_name} Data Users"
 
     rally_admin_team_id = config['rally_admin_team_id']
     rally_table_id = config['rally_table_id']
@@ -470,12 +471,12 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
         syn.setPermissions(
                 sprint_project,
                 principalId=sprint_data_users_team.id,
-                accessType=DEFAULT_PERMISSIONS)
+                accessType=DATA_USER_PERMISSIONS)
 
         # Grant admin team permissions for the sprint project
         syn.setPermissions(
                 sprint_project,
-                adminTeamId=config["rally_admin_team_id"],
+                principalId=config["rally_admin_team_id"],
                 accessType=config["rallyAdminTeamPermissions"])
 
         try:
