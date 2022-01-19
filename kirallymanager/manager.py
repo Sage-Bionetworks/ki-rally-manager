@@ -21,7 +21,7 @@ MANAGER_PERMISSIONS = ['SEND_MESSAGE', 'READ', 'UPDATE',
 DEFAULT_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
 POWER_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE', 'DELETE']
-DATA_USER_PERMISSIONS = ['DOWNLOAD', 'READ']
+DATA_USER_PERMISSIONS = ['DOWNLOAD', 'READ', 'UPDATE', 'CREATE']
 
 
 
@@ -265,7 +265,6 @@ def create_rally(rally_number, rally_title=None,
         rally_title = "ki Rally %s" % (rally_number, )
 
     rally_team_name = "ki Rally %s" % (rally_number, )
-    rally_power_users_team_name = f"{rally_team_name} Power Users"
 
     rally_admin_team_id = config['rally_admin_team_id']
     rally_table_id = config['rally_table_id']
@@ -279,16 +278,6 @@ def create_rally(rally_number, rally_title=None,
     # Add the rally team with it's default permissions to
     # the list of permissions to add to the rally project ACL
     team_permissions.update({rally_team.id: DEFAULT_PERMISSIONS})
-
-    # Create a power users team.
-    rally_power_users_team = create_team_and_invite(
-        team_name=rally_power_users_team_name,
-        default_members=config['defaultPowerUserTeamMembers'])
-
-    # Add the power users team with it's permissions to
-    # the list of permissions to add to the rally project ACL
-    team_permissions.update(
-        {rally_power_users_team.id: POWER_USER_PERMISSIONS})
 
     # Create the Rally Project
     annotations = dict(rally=rally_number,
@@ -358,12 +347,19 @@ def create_folders(root, folder_list):
 
     dirlookup = {'.': root}
 
+
     for directory, subdirectories, _ in folder_list:
         folder = dirlookup.get(directory, None)
-        if not folder:
+        if folder is None:
             folder = synapseclient.Folder(directory,
                                           parent=dirlookup[directory])
             folder = syn.store(folder)
+        else: # Add pre-existing subdirectories to dirlookup
+            preexisting_subdirectories = syn.getChildren(
+                    folder, includeTypes=["folder"])
+            for subdir in preexisting_subdirectories:
+                curr = os.path.join(directory, subdir["name"])
+                dirlookup[curr] = syn.get(subdir["id"])
         dirlookup[directory] = folder
         for subdir in subdirectories:
             curr = os.path.join(directory, subdir)
@@ -524,6 +520,34 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
             except Exception as exception:
                 LOGGER.error(f"Error with discussion post: {post} ({exception})") # pylint: disable=line-too-long
         LOGGER.info("Created sprint project forum posts.")
+
+        # Create rally/sprint/analysis folders in the KiData_MNCH_Derived project
+        rally_folder_name = f"Rally-{rally_number}"
+        sprint_folder_name = f"Sprint-{sprint_letter}"
+        project_root = create_folders( # create rally folder
+                root="syn18482954",
+                folder_list=[[".", [rally_folder_name], []]])
+        rally_folder = create_folders( # create sprint folder
+                root=project_root[f"./{rally_folder_name}"]["id"],
+                folder_list= [[".", [sprint_folder_name], []]])
+        sprint_folder = create_folders( # create analysis folder
+                root=rally_folder[f"./{sprint_folder_name}"]["id"],
+                folder_list=[[".", ["analysis"], []]])
+        syn.setPermissions(
+                rally_folder["."],
+                principalId=sprint_data_users_team.id,
+                accessType=["READ"],
+                overwrite=False)
+        syn.setPermissions(
+                sprint_folder["."], # a.k.a. the sprint folder
+                principalId=sprint_data_users_team.id,
+                accessType=["DOWNLOAD", "READ"],
+                overwrite=False)
+        syn.setPermissions(
+                sprint_folder["./analysis"],
+                principalId=sprint_data_users_team.id,
+                accessType=POWER_USER_PERMISSIONS,
+                overwrite=False)
 
         # Add the sprint to the all sprints table in the
         # ki working group project
