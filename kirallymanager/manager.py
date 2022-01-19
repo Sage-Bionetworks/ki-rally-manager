@@ -354,7 +354,7 @@ def create_folders(root, folder_list):
             folder = synapseclient.Folder(directory,
                                           parent=dirlookup[directory])
             folder = syn.store(folder)
-        else: # Add pre-existing subdirectories to dirlookup
+        else:  # Add pre-existing subdirectories to dirlookup
             preexisting_subdirectories = syn.getChildren(
                     folder, includeTypes=["folder"])
             for subdir in preexisting_subdirectories:
@@ -410,8 +410,6 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
     # Get the rally team.
     rally_team = syn.getTeam(
         rally_project.annotations.get('rallyTeam', None)[0])
-
-    rally_project_acl = syn._getACL(rally_project)
 
     sprint_project = get_sprint(config['root_project_id'],
                                 rally_number=rally_number,
@@ -521,16 +519,16 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                 LOGGER.error(f"Error with discussion post: {post} ({exception})") # pylint: disable=line-too-long
         LOGGER.info("Created sprint project forum posts.")
 
-        # Create rally/sprint/analysis folders in the KiData_MNCH_Derived project
+        # Create rally/sprint/analysis folders in KiData_MNCH_Derived project
         rally_folder_name = f"Rally-{rally_number}"
         sprint_folder_name = f"Sprint-{sprint_letter}"
-        project_root = create_folders( # create rally folder
+        project_root = create_folders(  # create rally folder
                 root="syn18482954",
                 folder_list=[[".", [rally_folder_name], []]])
-        rally_folder = create_folders( # create sprint folder
+        rally_folder = create_folders(  # create sprint folder
                 root=project_root[f"./{rally_folder_name}"]["id"],
-                folder_list= [[".", [sprint_folder_name], []]])
-        sprint_folder = create_folders( # create analysis folder
+                folder_list=[[".", [sprint_folder_name], []]])
+        sprint_folder = create_folders(  # create analysis folder
                 root=rally_folder[f"./{sprint_folder_name}"]["id"],
                 folder_list=[[".", ["analysis"], []]])
         syn.setPermissions(
@@ -539,7 +537,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                 accessType=["READ"],
                 overwrite=False)
         syn.setPermissions(
-                sprint_folder["."], # a.k.a. the sprint folder
+                sprint_folder["."],  # a.k.a. the sprint folder
                 principalId=sprint_data_users_team.id,
                 accessType=["DOWNLOAD", "READ"],
                 overwrite=False)
