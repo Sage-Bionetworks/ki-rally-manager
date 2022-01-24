@@ -24,16 +24,16 @@ rallymanager -h
 
 ## Create a sprint (and a rally)
 
-This creates a rally project, rally team(s), and adds the rally project to the rally project index.
+This creates a rally project, rally team(s), and adds the rally project to the rally project index. If you do not want to use your cached Synapse credentials, you may include a `--synapse_config` argument with the path to a Synapse configuration file.
 
 ```
-rallymanager -c CONFIG.json create-rally rally_number
+rallymanager --config CONFIG.json --synapse_config ~/.synapseConfig create-rally rally_number
 ```
 
 Create a sprint project with folder hierarchy, add wiki content, and post discussion forum posts.
 
 ```
-rallymanager -c CONFIG.json create-sprint rally_number sprint_letter
+rallymanager --config CONFIG.json --synapse_config ~/.synapseConfig create-sprint rally_number sprint_letter
 ```
 
 See `rallymanager create-rally -h` and `rallymanager create-sprint -h` for more parameters.
