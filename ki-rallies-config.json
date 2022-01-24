@@ -2,9 +2,12 @@
  "root_project_id": "syn11645282",
  "wikiRallyTemplateId": "syn12286642",
  "allFilesSchemaId": "syn12180518",
- "defaultRallyTeamMembers": [3372480, 3419923],
- "defaultPowerUserTeamMembers": [3372480, 3419923],
- "defaultRallyDataTeamMembers": [3372480, 3419923, 3341174, 3378845],
+ "defaultRallyTeamMembers": [3372480, 3419923, 3341174, 3377467],
+ "defaultRallyTeamMembersDescription": "Mary White, Jacqueline Exline, Vishak Subramoney, and gates-ki-service",
+ "defaultPowerUserTeamMembers": [3372480, 3419923, 3341174, 3377467],
+ "defaultPowerUserTeamMembersDescription": "Mary White, Jacqueline Exline, Vishak Subramoney, and gates-ki-service",
+ "defaultDataTeamMembers": [3341174, 3378845, 3377467],
+ "defaultDataTeamMembersDescription": "Vishak Subramoney, Brit Briggs, and gates-ki-service",
  "rallyAdminTeamPermissions": ["DOWNLOAD", "CHANGE_PERMISSIONS",
                                "CHANGE_SETTINGS", "MODERATE", "READ",
                                "UPDATE", "DELETE", "CREATE"],
@@ -12,8 +15,7 @@
    [".",
     ["Timeline", "Results", "Report Out",
      "Planning", "Data Outputs"],
-    []],
-    ["./Data Outputs", ["Documentation"], []]
+    []]
   ],
  "posts": [{"title": "Daily Discussion",
             "messageMarkdown": "Use this post for a daily checkin."}
