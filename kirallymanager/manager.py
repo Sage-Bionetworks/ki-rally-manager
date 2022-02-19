@@ -520,7 +520,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
         LOGGER.info("Created sprint project forum posts.")
 
         # Create rally/sprint/analysis folders in KiData_MNCH_Derived project
-        rally_folder_name = f"Rally-{rally_number}"
+        rally_folder_name = f"Rally-0{rally_number}"
         sprint_folder_name = f"Sprint-{sprint_letter}"
         project_root = create_folders(  # create rally folder
                 root="syn18482954",
