@@ -65,12 +65,12 @@ class Synapse:
         """
         Gets a logged in instance of the synapseclient.
         """
-        if not cls._synapse_client:
+        if cls._synapse_client is None:
             LOGGER.debug("Getting a new Synapse client.")
             cls._synapse_client = synapseclient.Synapse(*args, **kwargs)
             try:
                 cls._synapse_client.login(silent=True)
-            except:
+            except Exception as e:
                 syn_user = ParamStore.SYNAPSE_USERNAME()
                 syn_pass = ParamStore.SYNAPSE_PASSWORD()
                 cls._synapse_client.login(syn_user, syn_pass, silent=True)

@@ -2,6 +2,7 @@
 
 """Rally manager."""
 
+import os
 import sys
 import json
 import logging
@@ -111,7 +112,7 @@ def main():
 
     args = parser.parse_args()
 
-    _ = Synapse().client(configPath=args.synapse_config)
+    _ = Synapse().client(configPath=os.path.expanduser(args.synapse_config))
 
     args.func(args)
 

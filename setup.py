@@ -17,7 +17,7 @@ setup(name='kirallymanager',
       packages=['kirallymanager'],
       install_requires=[
           'pandas',
-          'synapseclient>=1.9,<2.0',
+          'synapseclient==2.7.0',
           'boto3'
       ],
       scripts=['bin/rallymanager'],

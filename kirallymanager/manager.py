@@ -169,7 +169,7 @@ def find_by_name_or_create(entity):
 
     try:
         entity = syn.store(entity, createOrUpdate=False)
-    except synapseclient.exceptions.SynapseHTTPError:
+    except synapseclient.core.exceptions.SynapseHTTPError:
         body = json.dumps({"parentId": entity.properties.get("parentId", None),
                            "entityName": entity.name})
         entity_obj = syn.restPOST("/entity/child",
@@ -292,7 +292,7 @@ def create_rally(rally_number, rally_title=None,
     try:
         rally_project = syn.store(rally_project, createOrUpdate=False)
         LOGGER.info("Rally project created.")
-    except synapseclient.exceptions.SynapseHTTPError:
+    except synapseclient.core.exceptions.SynapseHTTPError:
         body = json.dumps({"entityName": rally_title})
         rally_proj_obj = syn.restPOST("/entity/child", body=body)
         rally_project = syn.get(rally_proj_obj['id'])
@@ -305,7 +305,7 @@ def create_rally(rally_number, rally_title=None,
     # Add the wiki, only if it doesn't already exist
     try:
         wiki = syn.getWiki(owner=rally_project)
-    except synapseclient.exceptions.SynapseHTTPError:
+    except synapseclient.core.exceptions.SynapseHTTPError:
         rally_wiki_master_template = syn.get(config['wikiRallyTemplateId'])
         wiki = synapseclient.Wiki(owner=rally_project,
                                   markdownFile=rally_wiki_master_template.path)
@@ -435,7 +435,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
         try:
             sprint_project = syn.store(sprint_project, createOrUpdate=False)
             LOGGER.info(f"Created sprint project {sprint_project.id}")
-        except synapseclient.exceptions.SynapseHTTPError:
+        except synapseclient.core.exceptions.SynapseHTTPError:
             body = json.dumps({"entityName": sprint_project.name})
             sprint_project_obj = syn.restPOST("/entity/child",
                                               body=body)
@@ -475,7 +475,7 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
 
         try:
             wiki = syn.getWiki(owner=sprint_project)
-        except synapseclient.exceptions.SynapseHTTPError:
+        except synapseclient.core.exceptions.SynapseHTTPError:
             wiki_template = syn.get(wiki_master_template_id)
             wiki = synapseclient.Wiki(owner=sprint_project,
                                       markdownFile=wiki_template.path) # pylint: disable=line-too-long
