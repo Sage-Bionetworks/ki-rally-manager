@@ -17,9 +17,12 @@
      "Planning", "Data Outputs"],
     []]
   ],
- "posts": [{"title": "Daily Discussion",
-            "messageMarkdown": "Use this post for a daily checkin."}
-          ],
+ "posts": [
+     {
+         "title": "Daily Discussion",
+         "messageMarkdown": "Use this post for a daily checkin. Here is the template for the daily discussion thread:\n\na) What did I accomplish yesterday?\nb) Any blockers limiting my ability to move forward?\nc) What will I do tomorrow?\n\nData Science Team Members are requested to make an entry most days of the sprint. This keeps the Product Owner and Sponsors informed during the sprint lifecycle. The Rally Master also uses this communication to identify any obstacles that need resolution."
+     }
+ ],
  "rally_admin_team_id": "3367511",
  "rally_table_id": "syn11645289",
  "sprint_table_id": "syn11673548",

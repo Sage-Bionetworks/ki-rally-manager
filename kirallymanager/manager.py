@@ -508,9 +508,9 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
         for discussion_post in config['posts']:
             discussion_post["messageMarkdown"] = (
                     f"{discussion_post['messageMarkdown']} "
-                    f"\n\n"
+                    "\n\n"
                     f"Don't forget to tag `@{sprint_team.name}` "
-                    f"in your posts!")
+                    "in your posts!")
             discussion_post['forumId'] = forum.get('id', None)
             try:
                 post = syn.restPOST("/thread",
@@ -531,6 +531,9 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
         sprint_folder = create_folders(  # create analysis folder
                 root=rally_folder[f"./{sprint_folder_name}"]["id"],
                 folder_list=[[".", ["analysis"], []]])
+        sprint_folder = create_folders(  # create adam folder
+                root=rally_folder[f"./{sprint_folder_name}"]["id"],
+                folder_list=[[".", ["adam"], []]])
         syn.setPermissions(
                 rally_folder["."],
                 principalId=sprint_data_users_team.id,
@@ -545,6 +548,11 @@ def create_sprint(rally_number, sprint_letter, sprint_title=None,
                 sprint_folder["./analysis"],
                 principalId=sprint_data_users_team.id,
                 accessType=POWER_USER_PERMISSIONS,
+                overwrite=False)
+        syn.setPermissions(
+                sprint_folder["./adam"],
+                principalId=sprint_data_users_team.id,
+                accessType=["DOWNLOAD", "READ"],
                 overwrite=False)
 
         # Add the sprint to the all sprints table in the
